@@ -1,65 +1,112 @@
+import { kv } from "@vercel/kv";
 import Image from "next/image";
 
-export default function Home() {
+type ContentSection = {
+  title: string;
+  items?: string[];
+};
+
+type ContentData = {
+  hero?: {
+    title: string;
+    subtitle: string;
+    ctaText: string;
+    ctaLink: string;
+    backgroundImage: string;
+    badge?: string;
+  };
+  sections?: ContentSection[];
+};
+
+export default async function Home() {
+  // Check if KV is configured, if not use fallback defaults
+  let content: ContentData | null = null;
+  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+    try {
+      content = (await kv.get("landing:content")) as ContentData | null;
+    } catch (error) {
+      console.error("KV error:", error);
+      // Continue with fallback defaults
+    }
+  }
+
+  const hero = content?.hero || {
+    title: "Launch Your Tech Career in 5 Weeks.",
+    subtitle: "Add real content from /admin",
+    ctaText: "Reserve Your Seat",
+    ctaLink: "#",
+    backgroundImage: "",
+    badge: "⚡ Limited seats for next cohort!",
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <main className="min-h-screen">
+      {/* navbar */}
+      <header className="w-full fixed top-0 left-0 bg-white/80 backdrop-blur border-b z-50">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="font-bold text-sky-600">ITJobNow</div>
+          <nav className="hidden md:flex gap-6 text-sm text-slate-700">
+            <a href="#courses">Courses</a>
+            <a href="#contact">Contact</a>
+            <a href="/admin" className="text-slate-500">
+              Admin
+            </a>
+          </nav>
+          <a
+            href={hero.ctaLink}
+            className="bg-sky-600 text-white px-4 py-2 rounded-md text-sm"
+          >
+            Enroll Now
+          </a>
+        </div>
+      </header>
+
+      {/* hero */}
+      <section className="relative h-[520px] mt-[64px] flex items-center">
+        {hero.backgroundImage ? (
+          <Image
+            src={hero.backgroundImage}
+            alt="Hero background"
+            fill
+            className="object-cover"
+            priority
+          />
+        ) : (
+          <div className="absolute inset-0 bg-slate-900" />
+        )}
+        <div className="absolute inset-0 bg-slate-900/60" />
+        <div className="relative max-w-5xl mx-auto px-4 text-white">
+          {hero.badge ? (
+            <p className="mb-3 text-sm text-orange-200">{hero.badge}</p>
+          ) : null}
+          <h1 className="text-4xl md:text-5xl font-bold max-w-2xl mb-4">
+            {hero.title}
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
+          <p className="text-lg max-w-xl mb-6">{hero.subtitle}</p>
           <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            href={hero.ctaLink}
+            className="bg-sky-500 hover:bg-sky-400 px-6 py-3 rounded-md font-semibold"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
+            {hero.ctaText}
           </a>
         </div>
-      </main>
-    </div>
+      </section>
+
+      {/* extra sections if present */}
+      {content?.sections && content.sections.length > 0 ? (
+        <section className="max-w-6xl mx-auto px-4 py-12 space-y-6">
+          {content.sections.map((section: ContentSection, idx: number) => (
+            <div key={idx}>
+              <h2 className="text-2xl font-semibold mb-2">{section.title}</h2>
+              <ul className="list-disc list-inside text-slate-700">
+                {section.items?.map((item: string, i: number) => (
+                  <li key={i}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </section>
+      ) : null}
+    </main>
   );
 }

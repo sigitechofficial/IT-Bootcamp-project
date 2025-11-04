@@ -3,24 +3,12 @@ import { kv } from '@vercel/kv';
 
 const KV_KEY = 'landing:content';
 
-// Map bootcamp-prefixed env vars to standard KV env vars that @vercel/kv expects
-function setupKVEnvVars() {
-    if (process.env.BOOTCAMP_KV_REST_API_URL && !process.env.KV_REST_API_URL) {
-        process.env.KV_REST_API_URL = process.env.BOOTCAMP_KV_REST_API_URL;
-    }
-    if (process.env.BOOTCAMP_KV_REST_API_TOKEN && !process.env.KV_REST_API_TOKEN) {
-        process.env.KV_REST_API_TOKEN = process.env.BOOTCAMP_KV_REST_API_TOKEN;
-    }
-}
-
 // Helper to write to KV
 async function writeToKV(data) {
     try {
-        if (!process.env.BOOTCAMP_KV_REST_API_URL || !process.env.BOOTCAMP_KV_REST_API_TOKEN) {
+        if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
             throw new Error('KV storage is not configured');
         }
-        // Map bootcamp env vars to standard ones that @vercel/kv expects
-        setupKVEnvVars();
         await kv.set(KV_KEY, data);
     } catch (err) {
         console.error('KV write failed:', err);
@@ -44,7 +32,7 @@ export async function POST(request) {
 
         const data = await request.json();
 
-        // Validate data structure
+
         if (!data || !data.hero) {
             return NextResponse.json(
                 { error: 'Invalid data format. Content must include a hero object.' },
@@ -63,7 +51,7 @@ export async function POST(request) {
 
         if (error.message === 'KV storage is not configured') {
             return NextResponse.json(
-                { error: 'KV storage is not configured. Please set BOOTCAMP_KV_REST_API_URL and BOOTCAMP_KV_REST_API_TOKEN environment variables.' },
+                { error: 'KV storage is not configured. Please set KV_REST_API_URL and KV_REST_API_TOKEN environment variables.' },
                 { status: 500 }
             );
         }

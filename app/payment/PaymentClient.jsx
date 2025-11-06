@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 
 
 
 export default function PaymentClient({ courseName, selectedCycleData }) {
 
-    const [isCreatingCheckout, setIsCreatingCheckout] = useState(false);
+
 
     const [fullName, setFullName] = useState("");
     const [phone, setPhone] = useState("");
@@ -15,12 +15,7 @@ export default function PaymentClient({ courseName, selectedCycleData }) {
     const [address, setAddress] = useState("");
     const [city, setCity] = useState("");
 
-    const totalAmountCents = useMemo(() => {
-        const price = selectedCycleData?.price || ""; // e.g., "$220.00"
-        const cleaned = String(price).replace(/[^0-9.]/g, "");
-        const dollars = Number.parseFloat(cleaned || "0");
-        return Math.round((Number.isFinite(dollars) ? dollars : 0) * 100);
-    }, [selectedCycleData]);
+    // Pricing parsing kept in case of future use
 
     const handleNext = async (e) => {
         e.preventDefault();
@@ -29,25 +24,8 @@ export default function PaymentClient({ courseName, selectedCycleData }) {
             return;
         }
 
-        // Redirect to Stripe Checkout (hosted) using our API route
-        try {
-            setIsCreatingCheckout(true);
-            const res = await fetch("/api/stripe/create-checkout-session", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ amount: totalAmountCents, productName: courseName }),
-            });
-            const data = await res.json();
-            if (res.ok && data?.url) {
-                window.location.href = data.url;
-            } else {
-                throw new Error(data?.error || "Failed to start checkout session");
-            }
-        } catch (err) {
-            alert(err.message || "Unable to start checkout session");
-        } finally {
-            setIsCreatingCheckout(false);
-        }
+        // No Stripe checkout. Continue to next step or show confirmation.
+        alert("Details captured. Payment step is currently disabled.");
     };
 
     // For hosted Checkout, redirect occurs via session URL; keeping this for potential in-page flow.
@@ -171,12 +149,8 @@ export default function PaymentClient({ courseName, selectedCycleData }) {
                         </div>
 
                         <div className="md:col-span-2 text-center">
-                            <button
-                                className={`w-full text-white px-12 py-4 rounded-lg text-lg font-semibold transition-colors ${isCreatingCheckout ? "bg-primary/70" : "bg-primary hover:bg-primary/90"
-                                    }`}
-                                disabled={isCreatingCheckout}
-                            >
-                                {isCreatingCheckout ? "Redirecting to Checkout..." : "Next"}
+                            <button className="w-full bg-primary text-white px-12 py-4 rounded-lg text-lg font-semibold hover:bg-primary/90 transition-colors">
+                                Next
                             </button>
                         </div>
                     </form>

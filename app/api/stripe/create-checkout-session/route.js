@@ -1,9 +1,5 @@
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: "2024-06-20",
-});
-
 export async function POST(req) {
     try {
         if (!process.env.STRIPE_SECRET_KEY) {
@@ -12,6 +8,10 @@ export async function POST(req) {
                 { status: 500, headers: { "Content-Type": "application/json" } }
             );
         }
+
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+            apiVersion: "2024-06-20",
+        });
 
         const body = await req.json();
         const { amount, currency = "usd", productName = "Payment" } = body || {};

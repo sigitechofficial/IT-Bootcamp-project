@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
+import { KV_KEY } from '@/lib/constants';
 
-const KV_KEY = 'landing:content';
-
-// Helper to write to KV
 async function writeToKV(data) {
     try {
         if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
@@ -16,7 +14,6 @@ async function writeToKV(data) {
     }
 }
 
-// POST handler to update content
 export async function POST(request) {
     try {
         // Check authorization
@@ -32,17 +29,12 @@ export async function POST(request) {
 
         const data = await request.json();
 
-
         if (!data || !data.hero) {
             return NextResponse.json(
                 { error: 'Invalid data format. Content must include a hero object.' },
                 { status: 400 }
             );
         }
-
-        console.log(data, "datadatadata");
-
-        // Write to KV
         await writeToKV(data);
 
         return NextResponse.json({ success: true });
@@ -56,7 +48,7 @@ export async function POST(request) {
             );
         }
 
-        // Return more specific error message
+
         return NextResponse.json(
             { error: `Failed to update content: ${error.message || 'Unknown error'}` },
             { status: 500 }

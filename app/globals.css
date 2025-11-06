@@ -1,1 +1,18 @@
 @import "tailwindcss";
+@import "../fonts/switzer/switzer.css";
+
+/* Tailwind v4 Theme Configuration */
+@theme {
+  --color-primary: #1193d4;
+}
+
+/* CSS Custom Properties for Primary Color (fallback) */
+:root {
+  --color-primary: #1193d4;
+}
+
+/* Set Switzer as default font family */
+body {
+  font-family: "Switzer", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+}

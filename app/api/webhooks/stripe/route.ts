@@ -8,26 +8,80 @@ import type { NextRequest } from "next/server";
 export const runtime = "nodejs"; // Stripe SDK needs Node runtime (not edge)
 export const dynamic = "force-dynamic"; // ensures we get the raw body
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-const resend = new Resend(process.env.RESEND_API_KEY!);
+// Initialize Stripe and Resend only if keys are available (for GET endpoint to work)
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY)
+  : null;
+const resend = process.env.RESEND_API_KEY
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null;
+
+// GET endpoint for testing if the webhook route is accessible
+export async function GET() {
+  return new Response(
+    JSON.stringify({
+      status: "Webhook endpoint is accessible",
+      endpoint: "/api/webhooks/stripe",
+      timestamp: new Date().toISOString(),
+      envCheck: {
+        hasStripeSecretKey: !!process.env.STRIPE_SECRET_KEY,
+        hasStripeWebhookSecret: !!process.env.STRIPE_WEBHOOK_SECRET,
+        hasResendApiKey: !!process.env.RESEND_API_KEY,
+        hasEmailFrom: !!process.env.EMAIL_FROM,
+      },
+    }),
+    {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    }
+  );
+}
 
 export async function POST(req: NextRequest) {
+  // Check if Stripe is initialized
+  if (!stripe) {
+    console.error("❌ STRIPE_SECRET_KEY is not configured!");
+    return new Response("Stripe secret key not configured", { status: 500 });
+  }
+
+  // Log that a request was received
+  console.log("=== WEBHOOK REQUEST RECEIVED ===");
+  console.log("Timestamp:", new Date().toISOString());
+  console.log("Method:", req.method);
+  console.log("URL:", req.url);
+  console.log("Headers:", Object.fromEntries(req.headers.entries()));
+
   const sig = req.headers.get("stripe-signature");
-  if (!sig) return new Response("Missing signature", { status: 400 });
+  console.log("Stripe signature present:", !!sig);
+
+  if (!sig) {
+    console.error("❌ Missing stripe-signature header");
+    return new Response("Missing signature", { status: 400 });
+  }
 
   // IMPORTANT: use the raw body for Stripe signature verification
   const rawBody = await req.text();
+  console.log("Raw body length:", rawBody.length);
+
+  // Check if webhook secret is configured
+  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    console.error("❌ STRIPE_WEBHOOK_SECRET is not configured!");
+    return new Response("Webhook secret not configured", { status: 500 });
+  }
 
   let event: Stripe.Event;
   try {
+    console.log("Attempting to verify webhook signature...");
     event = stripe.webhooks.constructEvent(
       rawBody,
       sig,
-      process.env.STRIPE_WEBHOOK_SECRET!
+      process.env.STRIPE_WEBHOOK_SECRET
     );
+    console.log("✅ Webhook signature verified successfully");
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
-    console.error("Webhook signature verification failed:", errorMessage);
+    console.error("❌ Webhook signature verification failed:", errorMessage);
+    console.error("Error details:", err);
     return new Response(`Webhook Error: ${errorMessage}`, { status: 400 });
   }
 
@@ -68,6 +122,13 @@ export async function POST(req: NextRequest) {
 
         // Send email with Resend
         if (email) {
+          if (!resend) {
+            console.error(
+              "❌ RESEND_API_KEY is not configured! Cannot send email."
+            );
+            break;
+          }
+
           try {
             console.log(
               `Attempting to send email to: ${email} for checkout session: ${session.id}`

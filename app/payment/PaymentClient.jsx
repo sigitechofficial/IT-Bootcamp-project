@@ -7,7 +7,6 @@ import React, { useState } from "react";
 export default function PaymentClient({ courseName, selectedCycleData }) {
 
 
-
     const [fullName, setFullName] = useState("");
     const [phone, setPhone] = useState("");
     const [country, setCountry] = useState("");
@@ -24,8 +23,8 @@ export default function PaymentClient({ courseName, selectedCycleData }) {
             return;
         }
 
-        // No Stripe checkout. Continue to next step or show confirmation.
-        alert("Details captured. Payment step is currently disabled.");
+        // Redirect directly to the Stripe product link
+        window.location.href = "https://book.stripe.com/test_eVq5kE4lP162elj3Yi9R600";
     };
 
     // For hosted Checkout, redirect occurs via session URL; keeping this for potential in-page flow.

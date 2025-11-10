@@ -3,32 +3,19 @@ import { IoIosCheckmarkCircleOutline } from "react-icons/io";
 import { FaGlobe, FaGraduationCap, FaUsers, FaYoutube, FaChevronRight } from "react-icons/fa";
 import FAQSection from "./FAQ";
 import ContactForm from "./ContactForm";
+import { defaultContent } from "@/lib/constants";
 
-export default function ProgramOverview({ faq }) {
+export default function ProgramOverview({ faq, programOverview }) {
     const faqItemsCount = Array.isArray(faq?.items) ? faq.items.length : 0;
     const faqInitialOpenCount =
         typeof faq?.initialOpenCount === "number" ? faq.initialOpenCount : 0;
     const faqKey = `${faqItemsCount}-${faqInitialOpenCount}`;
-    const whatYouLearn = [
-        "Full stack Development",
-        "Agile Methodologies",
-        "Version Control with Git",
-        "Cloud Fundamental",
-    ];
-
-    const benefits = [
-        "Hands-on, project-Based",
-        "Expert-Led Instruction",
-        "Career Placement Support",
-        "Small class sizes",
-    ];
-
-    const outcomes = [
-        "Job-Ready in 5 weeks",
-        "Professionals Portfolio",
-        "Industry Connections",
-        "Certificate of completion",
-    ];
+    const po = programOverview || defaultContent.programOverview;
+    const title = po?.title || defaultContent.programOverview.title;
+    const subtitle = po?.subtitle || defaultContent.programOverview.subtitle;
+    const whatYouLearn = Array.isArray(po?.whatYouLearn) && po.whatYouLearn.length > 0 ? po.whatYouLearn : defaultContent.programOverview.whatYouLearn;
+    const benefits = Array.isArray(po?.benefits) && po.benefits.length > 0 ? po.benefits : defaultContent.programOverview.benefits;
+    const outcomes = Array.isArray(po?.outcomes) && po.outcomes.length > 0 ? po.outcomes : defaultContent.programOverview.outcomes;
 
     return (
         <>
@@ -36,13 +23,12 @@ export default function ProgramOverview({ faq }) {
                 <div className="max-w-7xl mx-auto">
                     {/* Title */}
                     <h2 className="text-4xl md:text-5xl lg:text-5xl font-bold text-center mb-6 text-black font-switzer">
-                        Program Overview
+                        {title}
                     </h2>
 
                     {/* Subtitle */}
                     <p className="text-lg md:text-xl text-center text-black max-w-2xl px-5 mx-auto mb-12">
-                        Our curriculum is meticulously crafted to provide you with the skills
-                        and support you need to thrive in the tech industry.
+                        {subtitle}
                     </p>
 
                     {/* Three Columns */}

@@ -10,6 +10,7 @@ function normalizeContent(data) {
   const incoming = data || {};
   const headerData = incoming.header || {};
   const heroData = incoming.hero || {};
+  const programOverviewData = incoming.programOverview || {};
   const faqData = incoming.faq || {};
 
   const mergedHeader = {
@@ -29,6 +30,22 @@ function normalizeContent(data) {
   const mergedHero = {
     ...defaultContent.hero,
     ...heroData,
+  };
+
+  const mergedProgramOverview = {
+    ...defaultContent.programOverview,
+    ...programOverviewData,
+    title: programOverviewData.title ?? defaultContent.programOverview.title,
+    subtitle: programOverviewData.subtitle ?? defaultContent.programOverview.subtitle,
+    whatYouLearn: Array.isArray(programOverviewData.whatYouLearn) && programOverviewData.whatYouLearn.length > 0
+      ? programOverviewData.whatYouLearn
+      : defaultContent.programOverview.whatYouLearn,
+    benefits: Array.isArray(programOverviewData.benefits) && programOverviewData.benefits.length > 0
+      ? programOverviewData.benefits
+      : defaultContent.programOverview.benefits,
+    outcomes: Array.isArray(programOverviewData.outcomes) && programOverviewData.outcomes.length > 0
+      ? programOverviewData.outcomes
+      : defaultContent.programOverview.outcomes,
   };
 
   const fallbackFaq = defaultContent.faq;
@@ -57,6 +74,7 @@ function normalizeContent(data) {
     ...incoming,
     header: mergedHeader,
     hero: mergedHero,
+    programOverview: mergedProgramOverview,
     faq: normalizedFaq,
   };
 }
@@ -852,6 +870,236 @@ export default function AdminPage() {
           </div>
         </div>
 
+        {/* Program Overview Section */}
+        <div className="border-t pt-6">
+          <h2 className="text-xl font-bold mb-4">Program Overview</h2>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium">Title</label>
+              <input
+                className="border rounded px-3 py-2 w-full"
+                value={content.programOverview?.title || ""}
+                onChange={(e) =>
+                  setContent((prev) => ({
+                    ...prev,
+                    programOverview: { ...prev.programOverview, title: e.target.value },
+                  }))
+                }
+                placeholder="Program Overview"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium">Subtitle</label>
+              <textarea
+                className="border rounded px-3 py-2 w-full text-sm min-h-[80px]"
+                value={content.programOverview?.subtitle || ""}
+                onChange={(e) =>
+                  setContent((prev) => ({
+                    ...prev,
+                    programOverview: { ...prev.programOverview, subtitle: e.target.value },
+                  }))
+                }
+                placeholder="Our curriculum is meticulously crafted..."
+              />
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-4">
+              {/* What You Learn */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold">What You Learn</h3>
+                {(content.programOverview?.whatYouLearn || []).map((item, index) => (
+                  <div key={index} className="flex gap-2 items-center">
+                    <input
+                      className="border rounded px-3 py-2 w-full text-sm"
+                      value={item}
+                      onChange={(e) =>
+                        setContent((prev) => {
+                          const next = Array.isArray(prev.programOverview?.whatYouLearn)
+                            ? [...prev.programOverview.whatYouLearn]
+                            : [];
+                          next[index] = e.target.value;
+                          return {
+                            ...prev,
+                            programOverview: { ...prev.programOverview, whatYouLearn: next },
+                          };
+                        })
+                      }
+                      placeholder="List item"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setContent((prev) => {
+                          const current = Array.isArray(prev.programOverview?.whatYouLearn)
+                            ? [...prev.programOverview.whatYouLearn]
+                            : [];
+                          const next = current.filter((_, i) => i !== index);
+                          return {
+                            ...prev,
+                            programOverview: { ...prev.programOverview, whatYouLearn: next },
+                          };
+                        })
+                      }
+                      className="px-2 py-2 bg-red-500 text-white rounded text-xs hover:bg-red-600"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setContent((prev) => {
+                      const current = Array.isArray(prev.programOverview?.whatYouLearn)
+                        ? [...prev.programOverview.whatYouLearn]
+                        : [];
+                      return {
+                        ...prev,
+                        programOverview: {
+                          ...prev.programOverview,
+                          whatYouLearn: [...current, ""],
+                        },
+                      };
+                    })
+                  }
+                  className="px-3 py-2 bg-green-500 text-white rounded text-xs hover:bg-green-600"
+                >
+                  + Add Item
+                </button>
+              </div>
+
+              {/* Benefits */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold">Benefits</h3>
+                {(content.programOverview?.benefits || []).map((item, index) => (
+                  <div key={index} className="flex gap-2 items-center">
+                    <input
+                      className="border rounded px-3 py-2 w-full text-sm"
+                      value={item}
+                      onChange={(e) =>
+                        setContent((prev) => {
+                          const next = Array.isArray(prev.programOverview?.benefits)
+                            ? [...prev.programOverview.benefits]
+                            : [];
+                          next[index] = e.target.value;
+                          return {
+                            ...prev,
+                            programOverview: { ...prev.programOverview, benefits: next },
+                          };
+                        })
+                      }
+                      placeholder="List item"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setContent((prev) => {
+                          const current = Array.isArray(prev.programOverview?.benefits)
+                            ? [...prev.programOverview.benefits]
+                            : [];
+                          const next = current.filter((_, i) => i !== index);
+                          return {
+                            ...prev,
+                            programOverview: { ...prev.programOverview, benefits: next },
+                          };
+                        })
+                      }
+                      className="px-2 py-2 bg-red-500 text-white rounded text-xs hover:bg-red-600"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setContent((prev) => {
+                      const current = Array.isArray(prev.programOverview?.benefits)
+                        ? [...prev.programOverview.benefits]
+                        : [];
+                      return {
+                        ...prev,
+                        programOverview: {
+                          ...prev.programOverview,
+                          benefits: [...current, ""],
+                        },
+                      };
+                    })
+                  }
+                  className="px-3 py-2 bg-green-500 text-white rounded text-xs hover:bg-green-600"
+                >
+                  + Add Item
+                </button>
+              </div>
+
+              {/* Outcomes */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold">Outcomes</h3>
+                {(content.programOverview?.outcomes || []).map((item, index) => (
+                  <div key={index} className="flex gap-2 items-center">
+                    <input
+                      className="border rounded px-3 py-2 w-full text-sm"
+                      value={item}
+                      onChange={(e) =>
+                        setContent((prev) => {
+                          const next = Array.isArray(prev.programOverview?.outcomes)
+                            ? [...prev.programOverview.outcomes]
+                            : [];
+                          next[index] = e.target.value;
+                          return {
+                            ...prev,
+                            programOverview: { ...prev.programOverview, outcomes: next },
+                          };
+                        })
+                      }
+                      placeholder="List item"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setContent((prev) => {
+                          const current = Array.isArray(prev.programOverview?.outcomes)
+                            ? [...prev.programOverview.outcomes]
+                            : [];
+                          const next = current.filter((_, i) => i !== index);
+                          return {
+                            ...prev,
+                            programOverview: { ...prev.programOverview, outcomes: next },
+                          };
+                        })
+                      }
+                      className="px-2 py-2 bg-red-500 text-white rounded text-xs hover:bg-red-600"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setContent((prev) => {
+                      const current = Array.isArray(prev.programOverview?.outcomes)
+                        ? [...prev.programOverview.outcomes]
+                        : [];
+                      return {
+                        ...prev,
+                        programOverview: {
+                          ...prev.programOverview,
+                          outcomes: [...current, ""],
+                        },
+                      };
+                    })
+                  }
+                  className="px-3 py-2 bg-green-500 text-white rounded text-xs hover:bg-green-600"
+                >
+                  + Add Item
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* FAQ Section */}
         <div className="border-t pt-6">
           <h2 className="text-xl font-bold mb-4">FAQ Section</h2>
@@ -951,8 +1199,8 @@ export default function AdminPage() {
                           })
                         }
                         className={`px-3 py-1 rounded text-sm ${itemsLength <= 1
-                            ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                            : "bg-red-500 text-white hover:bg-red-600"
+                          ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                          : "bg-red-500 text-white hover:bg-red-600"
                           }`}
                         disabled={itemsLength <= 1}
                       >

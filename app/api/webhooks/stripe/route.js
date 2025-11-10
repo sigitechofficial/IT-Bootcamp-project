@@ -135,26 +135,44 @@ export async function POST(req) {
 
             // Use Resend's test domain for development if custom domain not verified
             // For production, verify your domain at https://resend.com/domains
-            const fromEmail = process.env.EMAIL_FROM || "onboarding@resend.dev";
+            let fromEmail = process.env.EMAIL_FROM || "onboarding@resend.dev";
 
-            const emailResponse = await resend.emails.send({
+            const emailText =
+              `Hi ${customerName},\n\n` +
+              `We've received your payment${amountTotal ? ` of ${amountTotal} ${currency}` : ""
+              }. ` +
+              `Your order is now being processed.\n\n` +
+              `If you have any questions, just reply to this email.\n\n` +
+              `— Team`;
+
+            let emailResponse = await resend.emails.send({
               from: fromEmail,
               to: email,
               subject: "Thanks for your purchase!",
-              text:
-                `Hi ${customerName},\n\n` +
-                `We've received your payment${amountTotal ? ` of ${amountTotal} ${currency}` : ""
-                }. ` +
-                `Your order is now being processed.\n\n` +
-                `If you have any questions, just reply to this email.\n\n` +
-                `— Team`,
+              text: emailText,
             });
+
+            // If domain verification error, retry with test domain
+            if (emailResponse.error &&
+              emailResponse.error.statusCode === 403 &&
+              emailResponse.error.message?.includes("domain is not verified")) {
+              console.warn(
+                `⚠️ Custom domain not verified, falling back to test domain. Error: ${emailResponse.error.message}`
+              );
+              fromEmail = "onboarding@resend.dev";
+              emailResponse = await resend.emails.send({
+                from: fromEmail,
+                to: email,
+                subject: "Thanks for your purchase!",
+                text: emailText,
+              });
+            }
 
             if (emailResponse.data) {
               console.log(
-                `✅ Email sent successfully to ${email}. Email ID: ${emailResponse.data.id}`
+                `✅ Email sent successfully to ${email} from ${fromEmail}. Email ID: ${emailResponse.data.id}`
               );
-            } else {
+            } else if (emailResponse.error) {
               console.error(
                 `❌ Email send failed for ${email}. Response:`,
                 emailResponse

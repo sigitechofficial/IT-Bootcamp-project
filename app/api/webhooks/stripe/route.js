@@ -1,6 +1,6 @@
+// app/api/webhooks/stripe/route.js
 import Stripe from "stripe";
 import { Resend } from "resend";
-import type { NextRequest } from "next/server";
 
 // (Optional) KV for idempotency if you want to guard against duplicates
 // import { kv } from "@vercel/kv";
@@ -37,7 +37,7 @@ export async function GET() {
   );
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(req) {
   // Check if Stripe is initialized
   if (!stripe) {
     console.error("❌ STRIPE_SECRET_KEY is not configured!");
@@ -51,6 +51,7 @@ export async function POST(req: NextRequest) {
   console.log("URL:", req.url);
   console.log("Headers:", Object.fromEntries(req.headers.entries()));
 
+  // Get the signature from headers first (before consuming body)
   const sig = req.headers.get("stripe-signature");
   console.log("Stripe signature present:", !!sig);
 
@@ -59,36 +60,37 @@ export async function POST(req: NextRequest) {
     return new Response("Missing signature", { status: 400 });
   }
 
-  // IMPORTANT: use the raw body for Stripe signature verification
+  // Read the raw request body for signature verification
+  // This must be the raw body as a string, not parsed JSON
   const rawBody = await req.text();
+  console.log("Raw body preview:", rawBody.substring(0, 200) + (rawBody.length > 200 ? "..." : ""));
   console.log("Raw body length:", rawBody.length);
 
-  // Check if webhook secret is configured
-  if (!process.env.STRIPE_WEBHOOK_SECRET) {
-    console.error("❌ STRIPE_WEBHOOK_SECRET is not configured!");
-    return new Response("Webhook secret not configured", { status: 500 });
+  // Parse the body for additional logging (without signature verification yet)
+  try {
+    const parsedBody = JSON.parse(rawBody);
+    console.log("Parsed event type:", parsedBody.type);
+    console.log("Parsed event ID:", parsedBody.id);
+  } catch {
+    console.log("Could not parse body as JSON for logging");
   }
 
-  let event: Stripe.Event;
+  // IMPORTANT: use the raw body for Stripe signature verification
+  console.log("Attempting to verify webhook signature...");
+  let event;
   try {
-    console.log("Attempting to verify webhook signature...");
     event = stripe.webhooks.constructEvent(
       rawBody,
       sig,
       process.env.STRIPE_WEBHOOK_SECRET
     );
     console.log("✅ Webhook signature verified successfully");
-  } catch (err: unknown) {
+  } catch (err) {
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
     console.error("❌ Webhook signature verification failed:", errorMessage);
     console.error("Error details:", err);
     return new Response(`Webhook Error: ${errorMessage}`, { status: 400 });
   }
-
-  // (Optional) dedupe on event.id since Stripe may retry
-  // const processedKey = `stripe_event_${event.id}`;
-  // const already = await kv.get(processedKey);
-  // if (already) return new Response("OK (deduped)", { status: 200 });
 
   try {
     console.log(
@@ -97,30 +99,27 @@ export async function POST(req: NextRequest) {
 
     switch (event.type) {
       case "checkout.session.completed": {
-        const session = event.data.object as Stripe.Checkout.Session;
+        const session = event.data.object;
         console.log(
           `Processing checkout.session.completed for session: ${session.id}`
         );
 
-        // Payment Links also create Checkout Sessions.
-        // email can be here:
+        // Try to get the customer's email
         const email =
           session.customer_details?.email ||
           (typeof session.customer === "object" &&
-          session.customer !== null &&
-          "email" in session.customer
-            ? (session.customer as { email: string }).email
+            session.customer !== null &&
+            "email" in session.customer
+            ? session.customer.email
             : null) ||
           null;
 
-        // Useful extras for your email
         const customerName = session.customer_details?.name ?? "there";
         const amountTotal = session.amount_total
           ? (session.amount_total / 100).toFixed(2)
           : null;
         const currency = session.currency?.toUpperCase();
 
-        // Send email with Resend
         if (email) {
           if (!resend) {
             console.error(
@@ -140,14 +139,11 @@ export async function POST(req: NextRequest) {
               subject: "Thanks for your purchase!",
               text:
                 `Hi ${customerName},\n\n` +
-                `We've received your payment${
-                  amountTotal ? ` of ${amountTotal} ${currency}` : ""
+                `We've received your payment${amountTotal ? ` of ${amountTotal} ${currency}` : ""
                 }. ` +
                 `Your order is now being processed.\n\n` +
                 `If you have any questions, just reply to this email.\n\n` +
                 `— Team`,
-              // If you prefer HTML:
-              // html: `<p>Hi ${customerName},</p><p>Thanks for your payment...</p>`
             });
 
             if (emailResponse.data) {
@@ -160,7 +156,7 @@ export async function POST(req: NextRequest) {
                 emailResponse
               );
             }
-          } catch (emailError: unknown) {
+          } catch (emailError) {
             const errorMessage =
               emailError instanceof Error
                 ? emailError.message
@@ -179,14 +175,8 @@ export async function POST(req: NextRequest) {
           );
         }
 
-        // (Optional) mark processed to avoid duplicates later
-        // await kv.set(processedKey, "1", { ex: 60 * 60 * 24 });
-
         break;
       }
-
-      // If you prefer payment_intent.succeeded instead:
-      // case "payment_intent.succeeded": { ... }
 
       default:
         // ignore other events
@@ -194,8 +184,7 @@ export async function POST(req: NextRequest) {
     }
 
     return new Response("OK", { status: 200 });
-  } catch (e: unknown) {
-    // Make sure to return 200 only when you truly handled it
+  } catch (e) {
     const errorMessage = e instanceof Error ? e.message : "Unknown error";
     console.error("Handler Error:", errorMessage, e);
     return new Response(`Handler Error: ${errorMessage}`, { status: 500 });

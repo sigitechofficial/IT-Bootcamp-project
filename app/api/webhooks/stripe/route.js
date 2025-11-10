@@ -5,7 +5,6 @@ import { Resend } from "resend";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// init Stripe & Resend
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, {
     apiVersion: "2024-06-20",
@@ -16,7 +15,6 @@ const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
   : null;
 
-// change to your details
 const COMPANY_NAME = "IT Job Now";
 const SUPPORT_EMAIL = "support@itjobnow.com.au";
 
@@ -24,8 +22,6 @@ export async function GET() {
   return new Response(
     JSON.stringify({
       status: "Webhook endpoint is accessible",
-      endpoint: "/api/webhooks/stripe",
-      timestamp: new Date().toISOString(),
       envCheck: {
         hasStripeSecretKey: !!process.env.STRIPE_SECRET_KEY,
         hasStripeWebhookSecret: !!process.env.STRIPE_WEBHOOK_SECRET,
@@ -42,17 +38,14 @@ export async function GET() {
 
 export async function POST(req) {
   if (!stripe) {
-    console.error("❌ STRIPE_SECRET_KEY is not configured!");
     return new Response("Stripe secret key not configured", { status: 500 });
   }
 
   const sig = req.headers.get("stripe-signature");
   if (!sig) {
-    console.error("❌ Missing stripe-signature header");
     return new Response("Missing signature", { status: 400 });
   }
 
-  // must read raw body for stripe verification
   const rawBody = await req.text();
 
   let event;
@@ -62,9 +55,8 @@ export async function POST(req) {
       sig,
       process.env.STRIPE_WEBHOOK_SECRET
     );
-    console.log("✅ Webhook verified:", event.type, event.id);
   } catch (err) {
-    console.error("❌ Webhook verification failed:", err.message);
+    console.error("Webhook verify fail:", err.message);
     return new Response(`Webhook Error: ${err.message}`, { status: 400 });
   }
 
@@ -72,11 +64,8 @@ export async function POST(req) {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object;
-        console.log(
-          `Processing checkout.session.completed for session ${session.id}`
-        );
+        console.log("checkout.session.completed", session.id);
 
-        // 1) basic info from session
         const customerEmail = session.customer_details?.email ?? null;
         const customerName = session.customer_details?.name ?? "there";
         const amountTotal = session.amount_total
@@ -86,81 +75,95 @@ export async function POST(req) {
           ? session.currency.toUpperCase()
           : "AUD";
 
-        // 2) get line item to infer bootcamp name
+        // get line items to infer bootcamp name
         const lineItems = await stripe.checkout.sessions.listLineItems(
           session.id,
           { limit: 1 }
         );
         const firstItem = lineItems.data[0];
-
         const bootcampName =
           (session.metadata && session.metadata.bootcamp_name) ||
           firstItem?.description ||
           (firstItem?.price?.nickname ?? "IT Job Now Bootcamp");
 
-        // 3) payment time
         const paidAt = new Date(session.created * 1000).toLocaleString(
           "en-AU",
           { timeZone: "Australia/Sydney" }
         );
 
-        // 4) try to get invoice PDF to attach
+        // 1) Try to get invoice PDF to attach
         let attachment = null;
         if (session.invoice) {
           try {
             const invoice = await stripe.invoices.retrieve(session.invoice);
-            const pdfUrl = invoice.invoice_pdf;
-            if (pdfUrl) {
-              const pdfRes = await fetch(pdfUrl);
-              const arrayBuf = await pdfRes.arrayBuffer();
-              const base64 = Buffer.from(arrayBuf).toString("base64");
+            if (invoice.invoice_pdf) {
+              const pdfRes = await fetch(invoice.invoice_pdf);
+              const buf = await pdfRes.arrayBuffer();
+              const base64 = Buffer.from(buf).toString("base64");
               attachment = {
                 filename: `invoice-${invoice.number || invoice.id}.pdf`,
                 content: base64,
               };
-              console.log("✅ Got invoice PDF, will attach to email");
             }
           } catch (err) {
-            console.warn("⚠️ Could not fetch Stripe invoice PDF:", err.message);
+            console.warn("Could not fetch invoice PDF:", err.message);
           }
         }
 
-        // 5) get receipt URL & card info from payment intent / charge
+        // 2) Try to get a receipt URL (two paths)
         let receiptUrl = null;
         let cardBrand = null;
         let cardLast4 = null;
 
-        if (session.payment_intent) {
+        // a) if there is an invoice, its charge has the receipt
+        if (session.invoice) {
+          try {
+            const invoice = await stripe.invoices.retrieve(session.invoice);
+            if (invoice.charge) {
+              // invoice.charge can be string or object
+              const charge =
+                typeof invoice.charge === "string"
+                  ? await stripe.charges.retrieve(invoice.charge)
+                  : invoice.charge;
+              receiptUrl = charge.receipt_url || null;
+
+              const card = charge.payment_method_details?.card;
+              cardBrand = card?.brand ?? null;
+              cardLast4 = card?.last4 ?? null;
+            }
+          } catch (err) {
+            console.warn("Could not get receipt from invoice charge:", err.message);
+          }
+        }
+
+        // b) fallback: get from payment_intent -> charges[0]
+        if (!receiptUrl && session.payment_intent) {
           try {
             const paymentIntent = await stripe.paymentIntents.retrieve(
               session.payment_intent,
               { expand: ["charges.data.payment_method_details"] }
             );
             const charge = paymentIntent.charges?.data?.[0];
-            receiptUrl = charge?.receipt_url || null;
-
-            const card = charge?.payment_method_details?.card;
-            cardBrand = card?.brand ?? null;
-            cardLast4 = card?.last4 ?? null;
+            if (charge) {
+              receiptUrl = charge.receipt_url || null;
+              const card = charge.payment_method_details?.card;
+              cardBrand = card?.brand ?? cardBrand;
+              cardLast4 = card?.last4 ?? cardLast4;
+            }
           } catch (err) {
-            console.warn("⚠️ Could not retrieve payment_intent:", err.message);
+            console.warn("Could not get receipt from payment_intent:", err.message);
           }
         }
 
-        // 6) if no email, we can't send
         if (!customerEmail) {
-          console.warn(
-            `⚠️ No email on checkout session ${session.id}, skipping email`
-          );
+          console.warn("No email on session, skipping send");
           break;
         }
-
         if (!resend) {
-          console.error("❌ RESEND_API_KEY not configured, cannot send email");
+          console.error("RESEND_API_KEY missing, cannot send email");
           break;
         }
 
-        // 7) build final HTML
         const html = buildEnrollmentEmail({
           customerName,
           customerEmail,
@@ -184,36 +187,32 @@ export async function POST(req) {
           html,
         };
 
-        // add attachment only if we actually got invoice pdf
         if (attachment) {
           sendPayload.attachments = [attachment];
         }
 
-        const emailResponse = await resend.emails.send(sendPayload);
-
-        if (emailResponse.data) {
-          console.log(
-            `✅ Email sent to ${customerEmail}. Resend id: ${emailResponse.data.id}`
-          );
-        } else if (emailResponse.error) {
-          console.error("❌ Email send failed:", emailResponse.error);
+        const resp = await resend.emails.send(sendPayload);
+        if (resp.error) {
+          console.error("Resend error:", resp.error);
+        } else {
+          console.log("Email sent to", customerEmail);
         }
 
         break;
       }
 
       default:
-        console.log(`Ignoring event type: ${event.type}`);
+        console.log("Ignored event", event.type);
     }
 
     return new Response("OK", { status: 200 });
   } catch (err) {
-    console.error("❌ Handler error:", err);
+    console.error("Handler error:", err);
     return new Response(`Handler Error: ${err.message}`, { status: 500 });
   }
 }
 
-// helper to build HTML email
+// builds the HTML email
 function buildEnrollmentEmail({
   customerName,
   customerEmail,
@@ -244,7 +243,7 @@ function buildEnrollmentEmail({
       </div>
       <div style="padding:28px 32px 32px 32px;">
         <p>Hi ${customerName},</p>
-        <p>Thanks for your payment. This email confirms your successful enrolment in <strong>${bootcampName}</strong>.</p>
+        <p>Thanks for your payment. This email confirms your enrolment in <strong>${bootcampName}</strong>.</p>
         <p style="font-size:13px;color:#4b5563;">
           We’ve received <strong>${amountPaid}</strong> via Stripe on
           <strong>${paidAt}</strong>.
@@ -265,10 +264,10 @@ function buildEnrollmentEmail({
           </div>
           ${cardBrand || cardLast4
       ? `<div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:14px;">
-              <span>Payment method</span>
-              <span>${cardBrand ? cardBrand.toUpperCase() : ""}${cardLast4 ? " •••• " + cardLast4 : ""
+                  <span>Payment method</span>
+                  <span>${cardBrand ? cardBrand.toUpperCase() : ""}${cardLast4 ? " •••• " + cardLast4 : ""
       }</span>
-            </div>`
+                </div>`
       : ""
     }
           <div style="display:flex;justify-content:space-between;font-size:14px;">
@@ -279,10 +278,12 @@ function buildEnrollmentEmail({
 
         ${receiptUrl
       ? `<p style="margin-top:18px;font-size:13px;color:#4b5563;">
-              You can view or download your Stripe receipt here:
-              <a href="${receiptUrl}" style="color:#0f172a;">View receipt</a>
-            </p>`
-      : ""
+                You can view or download your Stripe receipt here:
+                <a href="${receiptUrl}" style="color:#0f172a;">View receipt</a>
+              </p>`
+      : `<p style="margin-top:18px;font-size:13px;color:#4b5563;">
+                If you need a formal receipt, reply to this email and we’ll send it.
+              </p>`
     }
 
         <p style="margin-top:20px;">What’s next?</p>

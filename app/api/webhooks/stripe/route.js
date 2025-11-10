@@ -16,6 +16,7 @@ const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
   : null;
 
+// change to your details
 const COMPANY_NAME = "IT Job Now";
 const SUPPORT_EMAIL = "support@itjobnow.com.au";
 
@@ -23,6 +24,8 @@ export async function GET() {
   return new Response(
     JSON.stringify({
       status: "Webhook endpoint is accessible",
+      endpoint: "/api/webhooks/stripe",
+      timestamp: new Date().toISOString(),
       envCheck: {
         hasStripeSecretKey: !!process.env.STRIPE_SECRET_KEY,
         hasStripeWebhookSecret: !!process.env.STRIPE_WEBHOOK_SECRET,
@@ -49,7 +52,7 @@ export async function POST(req) {
     return new Response("Missing signature", { status: 400 });
   }
 
-  // raw body for verification
+  // must read raw body for stripe verification
   const rawBody = await req.text();
 
   let event;
@@ -59,9 +62,9 @@ export async function POST(req) {
       sig,
       process.env.STRIPE_WEBHOOK_SECRET
     );
-    console.log("✅ Webhook signature verified:", event.type, event.id);
+    console.log("✅ Webhook verified:", event.type, event.id);
   } catch (err) {
-    console.error("❌ Webhook signature verification failed:", err.message);
+    console.error("❌ Webhook verification failed:", err.message);
     return new Response(`Webhook Error: ${err.message}`, { status: 400 });
   }
 
@@ -70,10 +73,10 @@ export async function POST(req) {
       case "checkout.session.completed": {
         const session = event.data.object;
         console.log(
-          `Processing checkout.session.completed for session: ${session.id}`
+          `Processing checkout.session.completed for session ${session.id}`
         );
 
-        // basic info
+        // 1) basic info from session
         const customerEmail = session.customer_details?.email ?? null;
         const customerName = session.customer_details?.name ?? "there";
         const amountTotal = session.amount_total
@@ -83,7 +86,7 @@ export async function POST(req) {
           ? session.currency.toUpperCase()
           : "AUD";
 
-        // get line items to infer bootcamp name
+        // 2) get line item to infer bootcamp name
         const lineItems = await stripe.checkout.sessions.listLineItems(
           session.id,
           { limit: 1 }
@@ -95,24 +98,69 @@ export async function POST(req) {
           firstItem?.description ||
           (firstItem?.price?.nickname ?? "IT Job Now Bootcamp");
 
-        // date of payment
+        // 3) payment time
         const paidAt = new Date(session.created * 1000).toLocaleString(
           "en-AU",
           { timeZone: "Australia/Sydney" }
         );
 
+        // 4) try to get invoice PDF to attach
+        let attachment = null;
+        if (session.invoice) {
+          try {
+            const invoice = await stripe.invoices.retrieve(session.invoice);
+            const pdfUrl = invoice.invoice_pdf;
+            if (pdfUrl) {
+              const pdfRes = await fetch(pdfUrl);
+              const arrayBuf = await pdfRes.arrayBuffer();
+              const base64 = Buffer.from(arrayBuf).toString("base64");
+              attachment = {
+                filename: `invoice-${invoice.number || invoice.id}.pdf`,
+                content: base64,
+              };
+              console.log("✅ Got invoice PDF, will attach to email");
+            }
+          } catch (err) {
+            console.warn("⚠️ Could not fetch Stripe invoice PDF:", err.message);
+          }
+        }
+
+        // 5) get receipt URL & card info from payment intent / charge
+        let receiptUrl = null;
+        let cardBrand = null;
+        let cardLast4 = null;
+
+        if (session.payment_intent) {
+          try {
+            const paymentIntent = await stripe.paymentIntents.retrieve(
+              session.payment_intent,
+              { expand: ["charges.data.payment_method_details"] }
+            );
+            const charge = paymentIntent.charges?.data?.[0];
+            receiptUrl = charge?.receipt_url || null;
+
+            const card = charge?.payment_method_details?.card;
+            cardBrand = card?.brand ?? null;
+            cardLast4 = card?.last4 ?? null;
+          } catch (err) {
+            console.warn("⚠️ Could not retrieve payment_intent:", err.message);
+          }
+        }
+
+        // 6) if no email, we can't send
         if (!customerEmail) {
           console.warn(
-            `⚠️ No email address found on session ${session.id}, skipping email`
+            `⚠️ No email on checkout session ${session.id}, skipping email`
           );
           break;
         }
 
         if (!resend) {
-          console.error("❌ RESEND_API_KEY not configured, cannot send email.");
+          console.error("❌ RESEND_API_KEY not configured, cannot send email");
           break;
         }
 
+        // 7) build final HTML
         const html = buildEnrollmentEmail({
           customerName,
           customerEmail,
@@ -122,32 +170,40 @@ export async function POST(req) {
           stripeSessionId: session.id,
           companyName: COMPANY_NAME,
           supportEmail: SUPPORT_EMAIL,
+          receiptUrl,
+          cardBrand,
+          cardLast4,
         });
 
         const fromEmail = process.env.EMAIL_FROM || "onboarding@resend.dev";
 
-        // try send
-        const emailResponse = await resend.emails.send({
+        const sendPayload = {
           from: fromEmail,
           to: customerEmail,
           subject: `Enrolment confirmed – ${bootcampName}`,
           html,
-        });
+        };
+
+        // add attachment only if we actually got invoice pdf
+        if (attachment) {
+          sendPayload.attachments = [attachment];
+        }
+
+        const emailResponse = await resend.emails.send(sendPayload);
 
         if (emailResponse.data) {
           console.log(
             `✅ Email sent to ${customerEmail}. Resend id: ${emailResponse.data.id}`
           );
         } else if (emailResponse.error) {
-          console.error("❌ Error sending email:", emailResponse.error);
+          console.error("❌ Email send failed:", emailResponse.error);
         }
 
         break;
       }
 
       default:
-        // not interested in other events now
-        console.log(`Ignoring event type ${event.type}`);
+        console.log(`Ignoring event type: ${event.type}`);
     }
 
     return new Response("OK", { status: 200 });
@@ -167,6 +223,9 @@ function buildEnrollmentEmail({
   stripeSessionId,
   companyName,
   supportEmail,
+  receiptUrl,
+  cardBrand,
+  cardLast4,
 }) {
   const year = new Date().getFullYear();
 
@@ -204,15 +263,31 @@ function buildEnrollmentEmail({
             <span>Amount</span>
             <span>${amountPaid}</span>
           </div>
+          ${cardBrand || cardLast4
+      ? `<div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:14px;">
+              <span>Payment method</span>
+              <span>${cardBrand ? cardBrand.toUpperCase() : ""}${cardLast4 ? " •••• " + cardLast4 : ""
+      }</span>
+            </div>`
+      : ""
+    }
           <div style="display:flex;justify-content:space-between;font-size:14px;">
             <span>Stripe reference</span>
             <span>${stripeSessionId}</span>
           </div>
         </div>
 
+        ${receiptUrl
+      ? `<p style="margin-top:18px;font-size:13px;color:#4b5563;">
+              You can view or download your Stripe receipt here:
+              <a href="${receiptUrl}" style="color:#0f172a;">View receipt</a>
+            </p>`
+      : ""
+    }
+
         <p style="margin-top:20px;">What’s next?</p>
         <ul style="color:#4b5563;padding-left:18px;">
-          <li>You’ll receive access / onboarding details shortly.</li>
+          <li>You’ll receive onboarding / access details shortly.</li>
           <li>Keep this email as your receipt.</li>
           <li>If something looks wrong, just reply to this email.</li>
         </ul>

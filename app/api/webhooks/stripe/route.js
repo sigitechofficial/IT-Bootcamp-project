@@ -133,8 +133,12 @@ export async function POST(req) {
               `Attempting to send email to: ${email} for checkout session: ${session.id}`
             );
 
+            // Use Resend's test domain for development if custom domain not verified
+            // For production, verify your domain at https://resend.com/domains
+            const fromEmail = process.env.EMAIL_FROM || "onboarding@resend.dev";
+
             const emailResponse = await resend.emails.send({
-              from: process.env.EMAIL_FROM || "noreply@yourdomain.com",
+              from: fromEmail,
               to: email,
               subject: "Thanks for your purchase!",
               text:

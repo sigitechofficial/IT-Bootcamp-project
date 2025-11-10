@@ -35,9 +35,9 @@ function normalizeContent(data) {
   const faqItems =
     Array.isArray(faqData.items) && faqData.items.length > 0
       ? faqData.items.map((item) => ({
-          question: item?.question ?? "",
-          answer: item?.answer ?? "",
-        }))
+        question: item?.question ?? "",
+        answer: item?.answer ?? "",
+      }))
       : fallbackFaq.items;
 
   const openCountRaw =
@@ -950,11 +950,10 @@ export default function AdminPage() {
                             };
                           })
                         }
-                        className={`px-3 py-1 rounded text-sm ${
-                          itemsLength <= 1
+                        className={`px-3 py-1 rounded text-sm ${itemsLength <= 1
                             ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                             : "bg-red-500 text-white hover:bg-red-600"
-                        }`}
+                          }`}
                         disabled={itemsLength <= 1}
                       >
                         Remove

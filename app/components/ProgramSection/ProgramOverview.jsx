@@ -5,6 +5,10 @@ import FAQSection from "./FAQ";
 import ContactForm from "./ContactForm";
 
 export default function ProgramOverview({ faq }) {
+    const faqItemsCount = Array.isArray(faq?.items) ? faq.items.length : 0;
+    const faqInitialOpenCount =
+        typeof faq?.initialOpenCount === "number" ? faq.initialOpenCount : 0;
+    const faqKey = `${faqItemsCount}-${faqInitialOpenCount}`;
     const whatYouLearn = [
         "Full stack Development",
         "Agile Methodologies",
@@ -293,7 +297,7 @@ export default function ProgramOverview({ faq }) {
             </section>
 
             {/* FAQ Section */}
-            <FAQSection faq={faq} />
+            <FAQSection key={faqKey} faq={faq} />
 
             {/* Contact Form Section */}
             <ContactForm />

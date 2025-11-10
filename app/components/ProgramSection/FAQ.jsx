@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { FaPlus, FaMinus } from "react-icons/fa";
 import { defaultContent } from "@/lib/constants";
 
@@ -30,25 +30,13 @@ export default function FAQSection({ faq }) {
         Array.from({ length: openCount }, (_, index) => index)
     );
 
-    useEffect(() => {
-        setOpenIndices((prev) => {
-            if (items.length === 0) {
-                return [];
-            }
-            const next = Array.from({ length: openCount }, (_, index) => index);
-            if (prev.length === next.length && prev.every((value, idx) => value === next[idx])) {
-                return prev;
-            }
-            return next;
-        });
-    }, [items.length, openCount]);
-
     const toggleFAQ = (index) => {
-        setOpenIndices((prev) =>
-            prev.includes(index)
-                ? prev.filter((i) => i !== index)
-                : [...prev, index]
-        );
+        setOpenIndices((prev) => {
+            const filtered = prev.filter((i) => i < items.length);
+            return filtered.includes(index)
+                ? filtered.filter((i) => i !== index)
+                : [...filtered, index];
+        });
     };
 
     return (

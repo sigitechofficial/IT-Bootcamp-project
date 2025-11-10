@@ -35,15 +35,11 @@ export async function GET() {
 
 export async function POST(req) {
   if (!stripe) {
-    console.error("❌ No STRIPE_SECRET_KEY");
     return new Response("Stripe not configured", { status: 500 });
   }
 
   const sig = req.headers.get("stripe-signature");
-  if (!sig) {
-    console.error("❌ No stripe-signature header");
-    return new Response("Missing signature", { status: 400 });
-  }
+  if (!sig) return new Response("Missing signature", { status: 400 });
 
   const rawBody = await req.text();
 
@@ -56,16 +52,59 @@ export async function POST(req) {
     );
     console.log("✅ webhook verified", event.type, event.id);
   } catch (err) {
-    console.error("❌ webhook verification failed:", err.message);
+    console.error("❌ webhook verify fail:", err.message);
     return new Response(`Webhook Error: ${err.message}`, { status: 400 });
   }
 
   try {
     switch (event.type) {
+      // 1) Checkout session: just note what was bought (we could store, but we can also re-fetch later)
       case "checkout.session.completed": {
         const session = event.data.object;
         console.log("➡ checkout.session.completed for", session.id);
+        // we don’t send the email here because the charge/receipt may not exist yet
+        break;
+      }
 
+      // 2) Payment intent succeeded: now we are SURE the charge exists → get receipt → find checkout session → send email
+      case "payment_intent.succeeded": {
+        const pi = event.data.object;
+        console.log("➡ payment_intent.succeeded for", pi.id);
+
+        // get the charge so we can pull receipt + card details
+        const charge =
+          pi.charges && pi.charges.data && pi.charges.data[0]
+            ? pi.charges.data[0]
+            : null;
+
+        if (!charge) {
+          console.warn(
+            "⚠ payment_intent.succeeded but no charge yet — cannot build receipt"
+          );
+          break;
+        }
+
+        const receiptUrl = charge.receipt_url || null;
+        const card = charge.payment_method_details?.card;
+        const cardBrand = card?.brand ?? null;
+        const cardLast4 = card?.last4 ?? null;
+
+        // now we need to know WHAT the user bought → pull the checkout session by payment_intent
+        const sessions = await stripe.checkout.sessions.list({
+          payment_intent: pi.id,
+          limit: 1,
+        });
+
+        const session = sessions.data[0];
+        if (!session) {
+          console.warn(
+            "⚠ payment_intent.succeeded but no Checkout Session found for PI",
+            pi.id
+          );
+          break;
+        }
+
+        // basic info from session
         const customerEmail = session.customer_details?.email ?? null;
         const customerName = session.customer_details?.name ?? "there";
         const amountTotal = session.amount_total
@@ -73,102 +112,31 @@ export async function POST(req) {
           : null;
         const currency = (session.currency || "aud").toUpperCase();
 
-        // get product / bootcamp name
+        // get line item to infer bootcamp name
         const lineItems = await stripe.checkout.sessions.listLineItems(
           session.id,
           { limit: 1 }
         );
         const firstItem = lineItems.data[0];
+
         const bootcampName =
           (session.metadata && session.metadata.bootcamp_name) ||
           firstItem?.description ||
           (firstItem?.price?.nickname ?? "IT Job Now Bootcamp");
 
-        const paidAt = new Date(session.created * 1000).toISOString();
-
-        // ---------- 1) Try invoice PDF (your event has invoice: null, so this will just skip) ----------
-        let attachment = null;
-        if (session.invoice) {
-          try {
-            const invoice = await stripe.invoices.retrieve(session.invoice);
-            if (invoice.invoice_pdf) {
-              const pdfRes = await fetch(invoice.invoice_pdf);
-              const buff = await pdfRes.arrayBuffer();
-              attachment = {
-                filename: `invoice-${invoice.number || invoice.id}.pdf`,
-                content: Buffer.from(buff).toString("base64"),
-              };
-              console.log("✅ will attach invoice PDF");
-            }
-          } catch (err) {
-            console.warn("⚠ invoice fetch failed:", err.message);
-          }
-        }
-
-        // ---------- 2) Get receipt URL ----------
-        let receiptUrl = null;
-        let cardBrand = null;
-        let cardLast4 = null;
-
-        // (a) invoice path (will be skipped for your event)
-        if (session.invoice) {
-          try {
-            const invoice = await stripe.invoices.retrieve(session.invoice);
-            if (invoice.charge) {
-              const charge =
-                typeof invoice.charge === "string"
-                  ? await stripe.charges.retrieve(invoice.charge)
-                  : invoice.charge;
-              receiptUrl = charge.receipt_url || null;
-              const card = charge.payment_method_details?.card;
-              cardBrand = card?.brand ?? null;
-              cardLast4 = card?.last4 ?? null;
-              console.log("✅ got receipt from invoice charge:", receiptUrl);
-            }
-          } catch (err) {
-            console.warn("⚠ could not get receipt from invoice charge:", err.message);
-          }
-        }
-
-        // (b) fallback to payment_intent — THIS is the path for your event
-        if (!receiptUrl && session.payment_intent) {
-          console.log(
-            "ℹ trying to retrieve payment_intent to get receipt:",
-            session.payment_intent
-          );
-          try {
-            const pi = await stripe.paymentIntents.retrieve(
-              session.payment_intent,
-              { expand: ["charges.data.payment_method_details"] }
-            );
-
-            if (!pi.charges || pi.charges.data.length === 0) {
-              console.warn(
-                "⚠ payment_intent has no charges, cannot get receipt_url"
-              );
-            } else {
-              const charge = pi.charges.data[0];
-              receiptUrl = charge.receipt_url || null;
-              const card = charge.payment_method_details?.card;
-              cardBrand = card?.brand ?? null;
-              cardLast4 = card?.last4 ?? null;
-              console.log("✅ got receipt from payment_intent charge:", receiptUrl);
-            }
-          } catch (err) {
-            // THIS is what happens when you send a "fake" dashboard webhook
-            console.error(
-              "❌ could not retrieve payment_intent from Stripe. If this is a dashboard 'Send test webhook', the PI does not exist in Stripe:",
-              err.message
-            );
-          }
-        }
+        const paidAt = new Date(session.created * 1000).toLocaleString(
+          "en-AU",
+          { timeZone: "Australia/Sydney" }
+        );
 
         if (!customerEmail) {
-          console.warn("⚠ no customer email, skipping send");
+          console.warn(
+            "⚠ payment_intent.succeeded but session has no email, skipping"
+          );
           break;
         }
         if (!resend) {
-          console.error("❌ no RESEND_API_KEY, cannot send email");
+          console.error("❌ RESEND_API_KEY missing");
           break;
         }
 
@@ -181,27 +149,23 @@ export async function POST(req) {
           stripeSessionId: session.id,
           companyName: COMPANY_NAME,
           supportEmail: SUPPORT_EMAIL,
-          receiptUrl, // may be null
+          receiptUrl,
           cardBrand,
           cardLast4,
         });
 
         const fromEmail = process.env.EMAIL_FROM || "onboarding@resend.dev";
 
-        const payload = {
+        const sendPayload = {
           from: fromEmail,
           to: customerEmail,
           subject: `Enrolment confirmed – ${bootcampName}`,
           html,
         };
 
-        if (attachment) {
-          payload.attachments = [attachment];
-        }
-
-        const resp = await resend.emails.send(payload);
+        const resp = await resend.emails.send(sendPayload);
         if (resp.error) {
-          console.error("❌ resend error:", resp.error);
+          console.error("❌ Resend error:", resp.error);
         } else {
           console.log("✅ email sent to", customerEmail);
         }
@@ -210,7 +174,7 @@ export async function POST(req) {
       }
 
       default:
-        console.log("event ignored:", event.type);
+        console.log("Ignoring event:", event.type);
     }
 
     return new Response("OK", { status: 200 });
@@ -220,6 +184,7 @@ export async function POST(req) {
   }
 }
 
+// email template
 function buildEnrollmentEmail({
   customerName,
   customerEmail,
@@ -250,9 +215,9 @@ function buildEnrollmentEmail({
       </div>
       <div style="padding:28px 32px 32px 32px;">
         <p>Hi ${customerName},</p>
-        <p>Thanks for your payment. This email confirms your successful enrolment in <strong>${bootcampName}</strong>.</p>
+        <p>Thanks for your payment. This email confirms your enrolment in <strong>${bootcampName}</strong>.</p>
         <p style="font-size:13px;color:#4b5563;">
-          We’ve received <strong>${amountPaid}</strong> via Stripe on
+          We’ve received <strong>${amountPaid}</strong> on
           <strong>${paidAt}</strong>.
         </p>
 
@@ -289,8 +254,7 @@ function buildEnrollmentEmail({
                 <a href="${receiptUrl}" style="color:#0f172a;">View receipt</a>
               </p>`
       : `<p style="margin-top:18px;font-size:13px;color:#4b5563;">
-                We couldn't auto-fetch a receipt link from Stripe for this test event.
-                If this was from Dashboard “Send test webhook”, run a real test payment and you’ll see it here.
+                (We couldn’t attach a receipt link automatically for this payment yet.)
               </p>`
     }
 

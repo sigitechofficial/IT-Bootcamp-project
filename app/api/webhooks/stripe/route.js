@@ -128,6 +128,15 @@ export async function POST(req) {
             break;
           }
 
+          // Prepare email content (outside try block so it's accessible in catch)
+          const emailText =
+            `Hi ${customerName},\n\n` +
+            `We've received your payment${amountTotal ? ` of ${amountTotal} ${currency}` : ""
+            }. ` +
+            `Your order is now being processed.\n\n` +
+            `If you have any questions, just reply to this email.\n\n` +
+            `— Team`;
+
           try {
             console.log(
               `Attempting to send email to: ${email} for checkout session: ${session.id}`
@@ -135,15 +144,7 @@ export async function POST(req) {
 
             // Use Resend's test domain for development if custom domain not verified
             // For production, verify your domain at https://resend.com/domains
-            let fromEmail = process.env.EMAIL_FROM || "onboarding@resend.dev";
-
-            const emailText =
-              `Hi ${customerName},\n\n` +
-              `We've received your payment${amountTotal ? ` of ${amountTotal} ${currency}` : ""
-              }. ` +
-              `Your order is now being processed.\n\n` +
-              `If you have any questions, just reply to this email.\n\n` +
-              `— Team`;
+            let fromEmail = "onboarding@resend.dev";
 
             let emailResponse = await resend.emails.send({
               from: fromEmail,
@@ -179,17 +180,55 @@ export async function POST(req) {
               );
             }
           } catch (emailError) {
+            // Check if it's a domain verification error and retry with test domain
             const errorMessage =
               emailError instanceof Error
                 ? emailError.message
                 : "Unknown error";
-            console.error(`❌ Error sending email to ${email}:`, {
-              message: errorMessage,
-              error: emailError,
-              checkoutSessionId: session.id,
-              customerName: customerName,
-              amountTotal: amountTotal,
-            });
+
+            if (errorMessage.includes("domain is not verified") ||
+              (emailError && typeof emailError === 'object' && 'message' in emailError &&
+                String(emailError.message).includes("domain is not verified"))) {
+              console.warn(
+                `⚠️ Custom domain not verified (caught exception), falling back to test domain. Error: ${errorMessage}`
+              );
+
+              try {
+                const fallbackResponse = await resend.emails.send({
+                  from: "onboarding@resend.dev",
+                  to: email,
+                  subject: "Thanks for your purchase!",
+                  text: emailText,
+                });
+
+                if (fallbackResponse.data) {
+                  console.log(
+                    `✅ Email sent successfully to ${email} from onboarding@resend.dev. Email ID: ${fallbackResponse.data.id}`
+                  );
+                } else {
+                  console.error(
+                    `❌ Email send failed even with test domain. Response:`,
+                    fallbackResponse
+                  );
+                }
+              } catch (fallbackError) {
+                console.error(`❌ Error sending email to ${email} (even with test domain):`, {
+                  message: fallbackError instanceof Error ? fallbackError.message : "Unknown error",
+                  error: fallbackError,
+                  checkoutSessionId: session.id,
+                  customerName: customerName,
+                  amountTotal: amountTotal,
+                });
+              }
+            } else {
+              console.error(`❌ Error sending email to ${email}:`, {
+                message: errorMessage,
+                error: emailError,
+                checkoutSessionId: session.id,
+                customerName: customerName,
+                amountTotal: amountTotal,
+              });
+            }
           }
         } else {
           console.warn(

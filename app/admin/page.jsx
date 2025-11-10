@@ -6,6 +6,61 @@ import AdminPreviewHeader from "./AdminPreviewHeader";
 import HeroSection from "@/app/components/HeroSection/HeroSection";
 import Footer from "@/app/components/Footer/Footer";
 
+function normalizeContent(data) {
+  const incoming = data || {};
+  const headerData = incoming.header || {};
+  const heroData = incoming.hero || {};
+  const faqData = incoming.faq || {};
+
+  const mergedHeader = {
+    ...defaultContent.header,
+    ...headerData,
+    logo: {
+      ...defaultContent.header.logo,
+      ...headerData.logo,
+    },
+    button: {
+      ...defaultContent.header.button,
+      ...headerData.button,
+    },
+    menu: Array.isArray(headerData.menu) ? headerData.menu : defaultContent.header.menu,
+  };
+
+  const mergedHero = {
+    ...defaultContent.hero,
+    ...heroData,
+  };
+
+  const fallbackFaq = defaultContent.faq;
+  const faqItems =
+    Array.isArray(faqData.items) && faqData.items.length > 0
+      ? faqData.items.map((item) => ({
+          question: item?.question ?? "",
+          answer: item?.answer ?? "",
+        }))
+      : fallbackFaq.items;
+
+  const openCountRaw =
+    typeof faqData.initialOpenCount === "number"
+      ? faqData.initialOpenCount
+      : fallbackFaq.initialOpenCount;
+
+  const normalizedFaq = {
+    ...fallbackFaq,
+    ...faqData,
+    items: faqItems,
+    initialOpenCount: Math.min(Math.max(0, openCountRaw), faqItems.length),
+  };
+
+  return {
+    ...defaultContent,
+    ...incoming,
+    header: mergedHeader,
+    hero: mergedHero,
+    faq: normalizedFaq,
+  };
+}
+
 export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [content, setContent] = useState(null);
@@ -26,22 +81,26 @@ export default function AdminPage() {
         }
         const response = await res.json();
         if (response.data) {
-          setContent(response.data);
-          setInitialContent(response.data);
+          const normalized = normalizeContent(response.data);
+          setContent(normalized);
+          setInitialContent(normalized);
         } else if (response.content) {
           // Fallback for old format
-          setContent(response.content);
-          setInitialContent(response.content);
+          const normalized = normalizeContent(response.content);
+          setContent(normalized);
+          setInitialContent(normalized);
         } else {
           // default to site defaults so preview matches home (shows logo, etc.)
-          setContent(defaultContent);
-          setInitialContent(defaultContent);
+          const normalized = normalizeContent(defaultContent);
+          setContent(normalized);
+          setInitialContent(normalized);
         }
       } catch (error) {
         console.error("Error loading content:", error);
         // default to site defaults on error as well
-        setContent(defaultContent);
-        setInitialContent(defaultContent);
+        const normalized = normalizeContent(defaultContent);
+        setContent(normalized);
+        setInitialContent(normalized);
       }
     }
     load();
@@ -789,6 +848,206 @@ export default function AdminPage() {
                   )}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+
+        {/* FAQ Section */}
+        <div className="border-t pt-6">
+          <h2 className="text-xl font-bold mb-4">FAQ Section</h2>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium">Section Title</label>
+              <input
+                className="border rounded px-3 py-2 w-full"
+                value={content.faq?.title || ""}
+                onChange={(e) =>
+                  setContent((prev) => ({
+                    ...prev,
+                    faq: { ...prev.faq, title: e.target.value },
+                  }))
+                }
+                placeholder="Frequently Asked Questions"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium">Section Description</label>
+              <textarea
+                className="border rounded px-3 py-2 w-full text-sm min-h-[100px]"
+                value={content.faq?.description || ""}
+                onChange={(e) =>
+                  setContent((prev) => ({
+                    ...prev,
+                    faq: { ...prev.faq, description: e.target.value },
+                  }))
+                }
+                placeholder="Explore our FAQs to learn more..."
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium">Default Open Items</label>
+              <input
+                type="number"
+                min={0}
+                max={content.faq?.items?.length || 0}
+                className="border rounded px-3 py-2 w-full md:w-40"
+                value={content.faq?.initialOpenCount ?? 0}
+                onChange={(e) => {
+                  const raw = parseInt(e.target.value, 10);
+                  setContent((prev) => {
+                    const itemsLength = Array.isArray(prev.faq?.items) ? prev.faq.items.length : 0;
+                    const safeValue = Number.isNaN(raw) ? 0 : Math.max(0, raw);
+                    const clamped = Math.min(safeValue, itemsLength);
+                    return {
+                      ...prev,
+                      faq: { ...prev.faq, initialOpenCount: clamped },
+                    };
+                  });
+                }}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Controls how many questions start expanded (max equals total FAQs).
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <label className="block text-sm font-medium">FAQ Items</label>
+              {(content.faq?.items || []).map((item, index) => {
+                const itemsLength = content.faq?.items?.length || 0;
+                return (
+                  <div
+                    key={index}
+                    className="border border-gray-200 rounded-lg p-4 space-y-3 bg-gray-50"
+                  >
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-semibold text-gray-700">
+                        FAQ #{index + 1}
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setContent((prev) => {
+                            const currentItems = Array.isArray(prev.faq?.items)
+                              ? [...prev.faq.items]
+                              : [];
+                            if (currentItems.length <= 1) {
+                              return prev;
+                            }
+                            const nextItems = currentItems.filter((_, i) => i !== index);
+                            const adjustedOpenCount = Math.min(
+                              prev.faq?.initialOpenCount ?? 0,
+                              nextItems.length
+                            );
+                            return {
+                              ...prev,
+                              faq: {
+                                ...prev.faq,
+                                items: nextItems,
+                                initialOpenCount: adjustedOpenCount,
+                              },
+                            };
+                          })
+                        }
+                        className={`px-3 py-1 rounded text-sm ${
+                          itemsLength <= 1
+                            ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                            : "bg-red-500 text-white hover:bg-red-600"
+                        }`}
+                        disabled={itemsLength <= 1}
+                      >
+                        Remove
+                      </button>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Question
+                      </label>
+                      <input
+                        className="border rounded px-3 py-2 w-full text-sm"
+                        value={item.question || ""}
+                        onChange={(e) =>
+                          setContent((prev) => {
+                            const nextItems = Array.isArray(prev.faq?.items)
+                              ? [...prev.faq.items]
+                              : [];
+                            nextItems[index] = {
+                              ...nextItems[index],
+                              question: e.target.value,
+                            };
+                            return {
+                              ...prev,
+                              faq: { ...prev.faq, items: nextItems },
+                            };
+                          })
+                        }
+                        placeholder="Enter question"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Answer
+                      </label>
+                      <textarea
+                        className="border rounded px-3 py-2 w-full text-sm min-h-[80px]"
+                        value={item.answer || ""}
+                        onChange={(e) =>
+                          setContent((prev) => {
+                            const nextItems = Array.isArray(prev.faq?.items)
+                              ? [...prev.faq.items]
+                              : [];
+                            nextItems[index] = {
+                              ...nextItems[index],
+                              answer: e.target.value,
+                            };
+                            return {
+                              ...prev,
+                              faq: { ...prev.faq, items: nextItems },
+                            };
+                          })
+                        }
+                        placeholder="Enter answer"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+
+              <button
+                type="button"
+                onClick={() =>
+                  setContent((prev) => {
+                    const currentItems = Array.isArray(prev.faq?.items)
+                      ? [...prev.faq.items]
+                      : [];
+                    const nextItems = [
+                      ...currentItems,
+                      {
+                        question: "",
+                        answer: "",
+                      },
+                    ];
+                    const adjustedOpenCount = Math.min(
+                      prev.faq?.initialOpenCount ?? defaultContent.faq.initialOpenCount,
+                      nextItems.length
+                    );
+                    return {
+                      ...prev,
+                      faq: {
+                        ...prev.faq,
+                        items: nextItems,
+                        initialOpenCount: adjustedOpenCount,
+                      },
+                    };
+                  })
+                }
+                className="px-4 py-2 bg-green-500 text-white rounded text-sm hover:bg-green-600"
+              >
+                + Add FAQ Item
+              </button>
             </div>
           </div>
         </div>

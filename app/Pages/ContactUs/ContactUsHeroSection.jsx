@@ -11,6 +11,9 @@ export default function ContactUsHeroSection({ backgroundImage, backgroundVideo 
         subject: "",
         description: "",
     });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState("");
+    const [submitSuccess, setSubmitSuccess] = useState("");
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -20,11 +23,41 @@ export default function ContactUsHeroSection({ backgroundImage, backgroundVideo 
         }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        // Handle form submission here
-        console.log("Form submitted:", formData);
-        // You can add API call or other logic here
+        setSubmitError("");
+        setSubmitSuccess("");
+
+        // Basic client-side validation
+        if (!formData.fullName || !formData.email || !formData.subject || !formData.description) {
+            setSubmitError("Please fill in Full Name, Email, Subject, and Description.");
+            return;
+        }
+
+        try {
+            setIsSubmitting(true);
+            const res = await fetch("/api/contact", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(formData),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data?.error || "Failed to send message");
+            }
+            setSubmitSuccess("Your message has been sent. We'll get back to you soon!");
+            setFormData({
+                fullName: "",
+                email: "",
+                phoneNumber: "",
+                subject: "",
+                description: "",
+            });
+        } catch (err) {
+            setSubmitError(err.message || "Something went wrong. Please try again.");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -73,6 +106,18 @@ export default function ContactUsHeroSection({ backgroundImage, backgroundVideo 
 
                     {/* Form */}
                     <form onSubmit={handleSubmit}>
+                        {/* Feedback messages */}
+                        {submitSuccess ? (
+                            <div className="mb-4 rounded-lg bg-green-100 text-green-800 px-4 py-3">
+                                {submitSuccess}
+                            </div>
+                        ) : null}
+                        {submitError ? (
+                            <div className="mb-4 rounded-lg bg-red-100 text-red-800 px-4 py-3">
+                                {submitError}
+                            </div>
+                        ) : null}
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Left Column */}
                             <div>
@@ -138,9 +183,10 @@ export default function ContactUsHeroSection({ backgroundImage, backgroundVideo 
                         <div className="mt-6">
                             <button
                                 type="submit"
-                                className="w-full bg-primary text-white py-4 rounded-lg font-semibold text-lg hover:bg-primary/90 transition-colors"
+                                disabled={isSubmitting}
+                                className={`w-full bg-primary text-white py-4 rounded-lg font-semibold text-lg transition-colors ${isSubmitting ? "opacity-70 cursor-not-allowed" : "hover:bg-primary/90"}`}
                             >
-                                Send Message
+                                {isSubmitting ? "Sending..." : "Send Message"}
                             </button>
                         </div>
                     </form>

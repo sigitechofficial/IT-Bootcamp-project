@@ -17,13 +17,14 @@ export default async function Home() {
     const finalContent = content || defaultContent;
     console.log(finalContent, "finalContentfinalContent");
     const hero = finalContent.hero || defaultContent.hero;
+    const faq = finalContent.faq || defaultContent.faq;
 
     return (
         <main className="min-h-screen">
             <Header />
             <HeroSection hero={hero} />
 
-            <ProgramOverview />
+            <ProgramOverview faq={faq} />
             <Footer />
         </main>
     );

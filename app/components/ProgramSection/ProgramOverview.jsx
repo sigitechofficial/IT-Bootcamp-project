@@ -4,7 +4,7 @@ import { FaGlobe, FaGraduationCap, FaUsers, FaYoutube, FaChevronRight } from "re
 import FAQSection from "./FAQ";
 import ContactForm from "./ContactForm";
 
-export default function ProgramOverview() {
+export default function ProgramOverview({ faq }) {
     const whatYouLearn = [
         "Full stack Development",
         "Agile Methodologies",
@@ -293,7 +293,7 @@ export default function ProgramOverview() {
             </section>
 
             {/* FAQ Section */}
-            <FAQSection />
+            <FAQSection faq={faq} />
 
             {/* Contact Form Section */}
             <ContactForm />

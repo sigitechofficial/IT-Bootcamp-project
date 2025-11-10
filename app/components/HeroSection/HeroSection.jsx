@@ -35,7 +35,7 @@ export default function HeroSection({ hero }) {
                     <img
                         src={backgroundImage}
                         alt="Hero background"
-                        className="object-cover"
+                        className="w-full h-full object-cover"
                     />
                 ) : (
                     <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/40" />

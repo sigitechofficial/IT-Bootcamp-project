@@ -1,34 +1,47 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FaPlus, FaMinus } from "react-icons/fa";
+import { defaultContent } from "@/lib/constants";
 
-export default function FAQSection() {
-    // First 3 items open by default (indices 0, 1, 2)
-    const [openIndices, setOpenIndices] = useState([0, 1, 2]);
+export default function FAQSection({ faq }) {
+    const fallbackFaq = defaultContent.faq;
+    const faqContent = useMemo(() => {
+        if (!faq) {
+            return fallbackFaq;
+        }
+        const items = Array.isArray(faq.items) && faq.items.length > 0 ? faq.items : fallbackFaq.items;
+        const initialOpenCount =
+            typeof faq.initialOpenCount === "number" && faq.initialOpenCount >= 0
+                ? faq.initialOpenCount
+                : fallbackFaq.initialOpenCount;
+        return {
+            ...fallbackFaq,
+            ...faq,
+            items,
+            initialOpenCount,
+        };
+    }, [faq, fallbackFaq]);
 
-    const faqs = [
-        {
-            question: "Do I need prior IT knowledge?",
-            answer: "No. The bootcamp is designed for complete beginners.",
-        },
-        {
-            question: "Is this online or in-person?",
-            answer: "It's fully in-person at our training center.",
-        },
-        {
-            question: "What if I miss a class?",
-            answer: "You can attend the makeup session in the next cycle.",
-        },
-        {
-            question: "Will I get a certificate?",
-            answer: "Yes, upon successful completion of the bootcamp, you will receive a certificate of completion.",
-        },
-        {
-            question: "Can I pay in installments?",
-            answer: "Yes, we offer flexible payment plans. Please contact us for more details.",
-        },
-    ];
+    const items = faqContent.items || [];
+    const openCount = Math.max(0, Math.min(faqContent.initialOpenCount ?? 0, items.length));
+
+    const [openIndices, setOpenIndices] = useState(() =>
+        Array.from({ length: openCount }, (_, index) => index)
+    );
+
+    useEffect(() => {
+        setOpenIndices((prev) => {
+            if (items.length === 0) {
+                return [];
+            }
+            const next = Array.from({ length: openCount }, (_, index) => index);
+            if (prev.length === next.length && prev.every((value, idx) => value === next[idx])) {
+                return prev;
+            }
+            return next;
+        });
+    }, [items.length, openCount]);
 
     const toggleFAQ = (index) => {
         setOpenIndices((prev) =>
@@ -44,17 +57,17 @@ export default function FAQSection() {
                 {/* Header */}
                 <div className="text-center mb-12">
                     <h2 className="text-4xl md:text-5xl lg:text-5xl font-bold mb-4 text-black font-switzer">
-                        Frequently Asked Questions
+                        {faqContent.title || fallbackFaq.title}
                     </h2>
                     <p className="text-lg text-black/70  mx-auto">
-                        Explore our FAQs to learn more about how we work, what we offer, and how we can help you.
+                        {faqContent.description || fallbackFaq.description}
                     </p>
                 </div>
 
                 {/* FAQ Accordion Container */}
                 <div className="max-w-4xl mx-auto">
                     <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-                        {faqs.map((faq, index) => {
+                        {items.map((item, index) => {
                             const isOpen = openIndices.includes(index);
                             return (
                                 <div key={index}>
@@ -64,7 +77,7 @@ export default function FAQSection() {
                                         className="w-full px-6 py-5 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
                                     >
                                         <span className="text-lg md:text-xl font-bold text-black pr-4">
-                                            {faq.question}
+                                            {item.question}
                                         </span>
                                         <div className="shrink-0">
                                             <div className="w-8 h-8 bg-primary flex items-center justify-center rounded-lg">
@@ -80,12 +93,12 @@ export default function FAQSection() {
                                     {/* Answer */}
                                     {isOpen && (
                                         <div className="px-6 pb-5">
-                                            <p className="text-lg text-black/70">{faq.answer}</p>
+                                            <p className="text-lg text-black/70">{item.answer}</p>
                                         </div>
                                     )}
 
                                     {/* Divider */}
-                                    {index < faqs.length - 1 && (
+                                    {index < items.length - 1 && (
                                         <div className="border-t border-gray-200"></div>
                                     )}
                                 </div>

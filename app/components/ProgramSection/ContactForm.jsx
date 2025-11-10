@@ -8,8 +8,11 @@ export default function ContactForm() {
         fullName: "",
         email: "",
         phoneNumber: "",
+        subject: "",
         description: "",
     });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [status, setStatus] = useState({ type: null, message: "" });
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -19,11 +22,51 @@ export default function ContactForm() {
         }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        // Handle form submission here
-        console.log("Form submitted:", formData);
-        // You can add API call or other logic here
+        setIsSubmitting(true);
+        setStatus({ type: null, message: "" });
+
+        try {
+            const response = await fetch("/api/contact", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(formData),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok || data.success !== true) {
+                throw new Error(
+                    data?.error || "We couldn't send your message. Please try again."
+                );
+            }
+
+            setStatus({
+                type: "success",
+                message:
+                    "Thanks for reaching out! Your message has been sent and we'll get back to you soon.",
+            });
+
+            setFormData({
+                fullName: "",
+                email: "",
+                phoneNumber: "",
+                subject: "",
+                description: "",
+            });
+        } catch (error) {
+            setStatus({
+                type: "error",
+                message:
+                    error?.message ||
+                    "Something went wrong while sending your message. Please try again later.",
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -70,6 +113,16 @@ export default function ContactForm() {
                             />
 
                             <Input
+                                label="Subject"
+                                type="text"
+                                name="subject"
+                                placeholder="How can we help?"
+                                value={formData.subject}
+                                onChange={handleChange}
+                                required
+                            />
+
+                            <Input
                                 label="Description"
                                 type="textarea"
                                 name="description"
@@ -83,9 +136,21 @@ export default function ContactForm() {
                             <button
                                 type="submit"
                                 className="w-full bg-primary text-white py-4 rounded-lg font-semibold text-lg hover:bg-primary/90 transition-colors"
+                                disabled={isSubmitting}
                             >
-                                Send Message
+                                {isSubmitting ? "Sending..." : "Send Message"}
                             </button>
+
+                            {status.message && (
+                                <p
+                                    className={`mt-4 text-center text-sm ${status.type === "success"
+                                        ? "text-green-600"
+                                        : "text-red-600"
+                                        }`}
+                                >
+                                    {status.message}
+                                </p>
+                            )}
                         </form>
                     </div>
                 </div>

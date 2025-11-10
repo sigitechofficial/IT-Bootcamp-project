@@ -144,7 +144,7 @@ export async function POST(req) {
 
             // Use Resend's test domain for development if custom domain not verified
             // For production, verify your domain at https://resend.com/domains
-            let fromEmail = "onboarding@resend.dev";
+            let fromEmail = process.env.EMAIL_FROM || "onboarding@resend.dev";
 
             let emailResponse = await resend.emails.send({
               from: fromEmail,

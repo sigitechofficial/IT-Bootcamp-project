@@ -1,11 +1,46 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { IoIosCheckmarkCircleOutline } from "react-icons/io";
-import { FaGlobe, FaGraduationCap, FaUsers, FaYoutube, FaChevronRight } from "react-icons/fa";
+import { FaGlobe, FaGraduationCap, FaUsers, FaYoutube, FaChevronRight, FaClock, FaCalendarAlt, FaUserTie } from "react-icons/fa";
 import FAQSection from "./FAQ";
 import ContactForm from "./ContactForm";
 import { defaultContent } from "@/lib/constants";
 
 export default function ProgramOverview({ faq, programOverview }) {
+    const router = useRouter();
+    const [selectedCycle, setSelectedCycle] = useState("current");
+
+    const bootcampCycles = [
+        {
+            id: "current",
+            title: "Current Bootcamp Cycle",
+            recommended: true,
+            price: "$220.00",
+            priceLabel: "one-time",
+            startDate: "March 15, 2025",
+            endDate: "April 19, 2025",
+            duration: "5-Week Intensive",
+        },
+        {
+            id: "next",
+            title: "Next Bootcamp Cycle",
+            recommended: false,
+            price: "$220.00",
+            priceLabel: "one-time",
+            startDate: "May 15, 2025",
+            endDate: "June 19, 2025",
+            duration: "5-Week Intensive",
+        },
+    ];
+
+    const handleSelectCycle = (cycleId) => {
+        setSelectedCycle(cycleId);
+        router.push(`/payment?cycle=${cycleId}`);
+    };
+
     const faqItemsCount = Array.isArray(faq?.items) ? faq.items.length : 0;
     const faqInitialOpenCount =
         typeof faq?.initialOpenCount === "number" ? faq.initialOpenCount : 0;
@@ -79,47 +114,116 @@ export default function ProgramOverview({ faq, programOverview }) {
 
             {/* Course Details, Duration & Pricing Section */}
             <section className="py-16 px-4 bg-[#F6F9FC]">
-                <div className="max-w-[879px] mx-auto">
+                <div className="max-w-[1179px] mx-auto">
                     {/* Main Title */}
                     <h2 className="text-4xl md:text-5xl lg:text-5xl font-bold text-center mb-12 text-black font-switzer">
                         Course Details, Duration & Pricing
                     </h2>
 
                     {/* Content Grid */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 max-w-6xl mx-auto">
+                    <div className="flex flex-col gap-8 lg:gap-12  mx-auto ">
                         {/* Left: Course Details */}
-                        <div className="space-y-6">
-                            <div>
-                                <h3 className="text-2xl font-bold text-black mb-2">Duration</h3>
-                                <p className="text-lg text-black/70">5 week Intensive</p>
+                        <div className="space-x-6 flex justify-between ">
+                            <div className="bg-white rounded-lg p-4 flex-1 shadow-sm shadow-gray-100 flex items-start gap-4">
+                                <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
+                                    <FaClock className="text-white text-xl" />
+                                </div>
+                                <div>
+                                    <h3 className="text-2xl font-bold text-black mb-2">Duration</h3>
+                                    <p className="text-lg text-black/70">5 week Intensive</p>
+                                </div>
                             </div>
 
-                            <div>
-                                <h3 className="text-2xl font-bold text-black mb-2">Schedule</h3>
-                                <p className="text-lg text-black/70">Full-Time: Mon-Fri, 9am - 5pm</p>
+                            <div className="bg-white rounded-lg p-4 flex-1 shadow-sm shadow-gray-100 flex items-start gap-4">
+                                <div className="w-12 h-12 rounded-lg bg-blue-500 flex items-center justify-center shrink-0">
+                                    <FaCalendarAlt className="text-white text-xl" />
+                                </div>
+                                <div>
+                                    <h3 className="text-2xl font-bold text-black mb-2">Schedule</h3>
+                                    <p className="text-lg text-black/70">Full-Time: <br /> Mon-Fri, 9am - 5pm</p>
+                                </div>
                             </div>
 
-                            <div>
-                                <h3 className="text-2xl font-bold text-black mb-4">Duration</h3>
-                                <ul className="space-y-2">
-                                    <li className="text-lg text-black/70">October 28, 2025</li>
-                                    <li className="text-lg text-black/70">January 6, 2026</li>
-                                </ul>
+                            <div className="bg-white rounded-lg p-4 flex-1 shadow-sm shadow-gray-100 flex items-start gap-4">
+                                <div className="w-12 h-12 rounded-lg bg-purple-400 flex items-center justify-center shrink-0">
+                                    <FaCalendarAlt className="text-white text-xl" />
+                                </div>
+                                <div>
+                                    <h3 className="text-2xl font-bold text-black mb-4">Duration</h3>
+                                    <ul className="space-y-2">
+                                        <li className="text-lg text-black/70">October 28, 2025</li>
+                                        <li className="text-lg text-black/70">January 6, 2026</li>
+                                    </ul>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Right: Pricing Box */}
-                        <div className="flex items-start justify-center lg:justify-end">
-                            <div className="bg-primary rounded-lg p-8 w-full max-w-md">
-                                <p className="text-white text-center text-lg mb-4">Pricing</p>
-                                <div className="flex items-baseline justify-center gap-2 mb-6">
-                                    <span className="text-5xl md:text-6xl font-bold text-white">$220</span>
-                                    <span className="text-white text-lg">One-Time</span>
+
+                        {/* Bootcamp Cycle Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mx-auto w-full mb-8">
+                            {bootcampCycles.map((cycle) => (
+                                <div
+                                    key={cycle.id}
+                                    className="relative bg-gray-100 rounded-lg p-6 md:p-8"
+                                >
+
+                                    {/* Title */}
+                                    <h3 className="text-2xl font-bold text-black mb-4">
+                                        {cycle.title}
+                                    </h3>
+
+                                    {/* Price */}
+                                    <div className="mb-6">
+                                        <span className="text-3xl font-bold text-black">
+                                            {cycle.price}
+                                        </span>
+                                        <span className="text-black ml-2">{cycle.priceLabel}</span>
+                                    </div>
+
+                                    {/* Selection Button */}
+                                    <button
+                                        onClick={() => handleSelectCycle(cycle.id)}
+                                        className={`w-full py-3 rounded-lg font-semibold mb-6 transition-colors ${selectedCycle === cycle.id
+                                            ? "bg-primary text-white"
+                                            : "bg-gray-300 text-white border border-gray-400"
+                                            }`}
+                                    >
+                                        Selected
+                                    </button>
+
+                                    {/* Details */}
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-3">
+                                            <IoIosCheckmarkCircleOutline
+                                                size={20}
+                                                color="#6B7280"
+                                                opacity={0.7}
+                                            />
+                                            <span className="text-gray-700">
+                                                Start Date: {cycle.startDate}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <IoIosCheckmarkCircleOutline
+                                                size={20}
+                                                color="#6B7280"
+                                                opacity={0.7}
+                                            />
+                                            <span className="text-gray-700">
+                                                End Date: {cycle.endDate}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <IoIosCheckmarkCircleOutline
+                                                size={20}
+                                                color="#6B7280"
+                                                opacity={0.7}
+                                            />
+                                            <span className="text-gray-700">{cycle.duration}</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <button className="w-full bg-white text-primary py-4 rounded-lg font-semibold text-lg hover:bg-gray-100 transition-colors">
-                                    Reserve Your Seat
-                                </button>
-                            </div>
+                            ))}
                         </div>
                     </div>
                 </div>
@@ -185,31 +289,120 @@ export default function ProgramOverview({ faq, programOverview }) {
 
             {/* YouTube Card Section */}
             <section className="py-16 px-4 bg-[#F6F9FC]">
-                <div className="max-w-[1214px] mx-auto">
-                    <div className="bg-white rounded-lg   md:px-4 py-8 flex flex-col md:flex-row items-center gap-6 md:gap-8 shadow-sm w-full mx-auto">
-                        {/* YouTube Logo */}
-                        <div className="shrink-0">
-                            <FaYoutube className="text-red-600 text-6xl md:text-7xl" />
-                        </div>
-
-                        {/* Text Content */}
-                        <div className="flex-1 text-center md:text-left">
-                            <h3 className="text-xl md:text-2xl font-bold text-black mb-2">
-                                Not sure if this is for you?
-                            </h3>
-                            <p className="text-lg text-black/70">
-                                Watch Our YouTube channel to see if this course is right for you.
+                <div className="max-w-[1200px] mx-auto">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+                        {/* Left Side: Text Content with CTA */}
+                        <div className="flex flex-col justify-center">
+                            <div className="flex items-center gap-3 mb-4">
+                                <FaYoutube className="text-red-600 text-4xl md:text-5xl" />
+                                <h3 className="text-2xl md:text-3xl font-bold text-black">
+                                    Not sure if this is for you?
+                                </h3>
+                            </div>
+                            <p className="text-base md:text-lg text-black/70 mb-6">
+                                Watch Our YouTube channel to see if this course is right for you. Get a preview of our teaching style, student success stories, and what you&apos;ll learn in this intensive bootcamp.
                             </p>
+                            <a
+                                href="https://www.youtube.com"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 bg-primary hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors w-fit"
+                            >
+                                Watch on YouTube
+                                <FaChevronRight className="text-sm" />
+                            </a>
                         </div>
 
-                        {/* Chevron Icon */}
-                        <div className="shrink-0">
-                            <FaChevronRight className="text-gray-600 text-2xl" />
+                        {/* Right Side: Embedded Video */}
+                        <div className="w-full">
+                            <div className="relative w-full aspect-video rounded-lg overflow-hidden shadow-lg">
+                                <iframe
+                                    className="absolute top-0 left-0 w-full h-full"
+                                    src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+                                    title="YouTube video player"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                    allowFullScreen
+                                ></iframe>
+                            </div>
                         </div>
                     </div>
                 </div>
             </section>
 
+            {/* Instructor Section */}
+            <section className="py-16 px-4 bg-white">
+                <div className="max-w-[1200px] mx-auto">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-4 items-start">
+
+                        <div className="flex flex-col items-center lg:items-start border col-span-1">
+                            {/* Photo Placeholder */}
+                            <div className="w-full max-w-[300px] aspect-square bg-gray-200 rounded-lg flex items-center justify-center mb-4">
+                                <span className="text-gray-400 text-lg">Photo</span>
+                            </div>
+
+
+                            <div className="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-full">
+                                <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                                    <FaUserTie className="text-white text-xs" />
+                                </div>
+                                <span className="text-black font-semibold text-sm">Lead Instructor</span>
+                            </div>
+                        </div>
+
+
+                        <div className="flex flex-col col-span-2" >
+                            {/* Section Title */}
+                            <h2 className="text-primary text-sm font-bold uppercase tracking-wider mb-2">
+                                YOUR INSTRUCTOR
+                            </h2>
+
+                            {/* Instructor Name */}
+                            <h3 className="text-3xl md:text-4xl font-bold text-black mb-4">
+                                [Instructor Name]
+                            </h3>
+
+                            {/* Description */}
+                            <p className="text-lg text-black/70 mb-6">
+                                10+ years in real IT support, on-call, and onsite troubleshooting. Hired and trained junior techs. Knows exactly what managers listen for in interviews — because they were that manager.
+                            </p>
+
+                            {/* Information Cards */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                {/* Background Card */}
+                                <div className="bg-gray-50 rounded-lg p-4">
+                                    <h4 className="text-lg font-bold text-black mb-2">Background</h4>
+                                    <p className="text-black/70">Helpdesk lead, field technician, escalation engineer</p>
+                                </div>
+
+                                {/* Focus Card */}
+                                <div className="bg-gray-50 rounded-lg p-4">
+                                    <h4 className="text-lg font-bold text-black mb-2">Focus</h4>
+                                    <p className="text-black/70">Making beginners production-ready fast</p>
+                                </div>
+
+                                {/* Teaching Style Card */}
+                                <div className="bg-gray-50 rounded-lg p-4 md:col-span-2">
+                                    <h4 className="text-lg font-bold text-black mb-2">Teaching style</h4>
+                                    <p className="text-black/70">No ego, no jargon. We demo, you do, we correct, you repeat until it&apos;s instinct.</p>
+                                </div>
+                            </div>
+
+                            {/* Skill Tags */}
+                            <div className="flex flex-wrap gap-3">
+                                <span className="bg-gray-100 text-black px-4 py-2 rounded-full text-sm font-medium">
+                                    Hiring experience
+                                </span>
+                                <span className="bg-gray-100 text-black px-4 py-2 rounded-full text-sm font-medium">
+                                    Real-world tickets
+                                </span>
+                                <span className="bg-gray-100 text-black px-4 py-2 rounded-full text-sm font-medium">
+                                    Interview prep
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
             <section className="py-16 px-4 bg-primary relative">
                 <div className=" mx-auto relative">

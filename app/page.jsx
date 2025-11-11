@@ -4,8 +4,10 @@ import Header from "@/app/components/Header/Header";
 import HeroSection from "@/app/components/HeroSection/HeroSection";
 import ProgramOverview from "@/app/components/ProgramSection/ProgramOverview";
 import Footer from "@/app/components/Footer/Footer";
+import { unstable_noStore as noStore } from "next/cache";
 
 export default async function Home() {
+    noStore();
     let content = null;
     if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
         try {

@@ -1,5 +1,8 @@
 @import "tailwindcss";
 @import "../fonts/switzer/switzer.css";
+@import "swiper/css";
+@import "swiper/css/navigation";
+@import "swiper/css/pagination";
 
 /* Tailwind v4 Theme Configuration */
 @theme {

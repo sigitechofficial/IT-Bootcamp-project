@@ -184,9 +184,9 @@ export default function ProgramOverview({
           </h2>
 
           {/* Content Grid */}
-          <div className="flex flex-col gap-8 lg:gap-12  mx-auto ">
+          <div className="flex flex-col gap-8 lg:gap-12  mx-auto flex-wrap ">
             {/* Left: Course Details */}
-            <div className="space-x-6 flex justify-between ">
+            <div className="space-x-6 flex justify-between flex-wrap gap-y-4">
               <div className="bg-white rounded-lg p-4 flex-1 shadow-sm shadow-gray-100 flex items-start gap-4">
                 <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center shrink-0">
                   <FaClock className="text-white text-xl" />

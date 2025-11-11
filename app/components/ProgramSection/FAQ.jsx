@@ -1,5 +1,4 @@
 "use client";
-import Header from "@/app/components/Header/Header";
 import Footer from "@/app/components/Footer/Footer";
 import { useMemo, useState } from "react";
 import { FaPlus, FaMinus } from "react-icons/fa";
@@ -43,7 +42,6 @@ export default function FAQSection({ faq }) {
 
     return (
         <>
-
 
             <section className="py-16 px-4 bg-white">
                 <div className="max-w-7xl mx-auto">

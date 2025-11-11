@@ -1,10 +1,8 @@
 import Link from "next/link";
 import { kv } from "@vercel/kv";
 import { defaultContent, KV_KEY } from "@/lib/constants";
-import { unstable_noStore as noStore } from "next/cache";
 
 export default async function Header({ content: passedContent }) {
-  noStore();
   // Use passed content or fetch from KV if not provided
   let content = passedContent;
   if (!content) {

@@ -19,7 +19,11 @@ import ContactForm from "./ContactForm";
 import { defaultContent } from "@/lib/constants";
 import { Swiper, SwiperSlide } from "swiper/react";
 
-export default function ProgramOverview({ faq, programOverview }) {
+export default function ProgramOverview({
+  faq: faqProp,
+  programOverview: programOverviewProp,
+  content,
+}) {
   const router = useRouter();
   const [selectedCycle, setSelectedCycle] = useState("current");
 
@@ -28,11 +32,16 @@ export default function ProgramOverview({ faq, programOverview }) {
     router.push(`/payment?cycle=${cycleId}`);
   };
 
+  const faq =
+    faqProp || content?.faq || defaultContent.faq;
   const faqItemsCount = Array.isArray(faq?.items) ? faq.items.length : 0;
   const faqInitialOpenCount =
     typeof faq?.initialOpenCount === "number" ? faq.initialOpenCount : 0;
   const faqKey = `${faqItemsCount}-${faqInitialOpenCount}`;
-  const po = programOverview || defaultContent.programOverview;
+  const po =
+    programOverviewProp ||
+    content?.programOverview ||
+    defaultContent.programOverview;
   const title = po?.title || defaultContent.programOverview.title;
   const subtitle = po?.subtitle || defaultContent.programOverview.subtitle;
   const whatYouLearn =

@@ -46,6 +46,48 @@ function normalizeContent(data) {
     outcomes: Array.isArray(programOverviewData.outcomes) && programOverviewData.outcomes.length > 0
       ? programOverviewData.outcomes
       : defaultContent.programOverview.outcomes,
+    testimonials: Array.isArray(programOverviewData.testimonials) && programOverviewData.testimonials.length > 0
+      ? programOverviewData.testimonials.map((t) => ({
+        name: t?.name ?? "",
+        quote: t?.quote ?? "",
+        image: t?.image ?? "",
+      }))
+      : defaultContent.programOverview.testimonials,
+    instructor: {
+      ...defaultContent.programOverview.instructor,
+      ...(programOverviewData.instructor || {}),
+      roleLabel: programOverviewData.instructor?.roleLabel ?? defaultContent.programOverview.instructor.roleLabel,
+      name: programOverviewData.instructor?.name ?? defaultContent.programOverview.instructor.name,
+      bio: programOverviewData.instructor?.bio ?? defaultContent.programOverview.instructor.bio,
+      background: programOverviewData.instructor?.background ?? defaultContent.programOverview.instructor.background,
+      focus: programOverviewData.instructor?.focus ?? defaultContent.programOverview.instructor.focus,
+      teachingStyle: programOverviewData.instructor?.teachingStyle ?? defaultContent.programOverview.instructor.teachingStyle,
+      image: programOverviewData.instructor?.image ?? defaultContent.programOverview.instructor.image,
+      tags: Array.isArray(programOverviewData.instructor?.tags) && programOverviewData.instructor.tags.length > 0
+        ? programOverviewData.instructor.tags
+        : defaultContent.programOverview.instructor.tags,
+    },
+    courseDetails: {
+      ...defaultContent.programOverview.courseDetails,
+      ...(programOverviewData.courseDetails || {}),
+      durationText: programOverviewData.courseDetails?.durationText ?? defaultContent.programOverview.courseDetails.durationText,
+      scheduleText: programOverviewData.courseDetails?.scheduleText ?? defaultContent.programOverview.courseDetails.scheduleText,
+      dates: Array.isArray(programOverviewData.courseDetails?.dates) && programOverviewData.courseDetails.dates.length > 0
+        ? programOverviewData.courseDetails.dates
+        : defaultContent.programOverview.courseDetails.dates,
+    },
+    bootcampCycles: Array.isArray(programOverviewData.bootcampCycles) && programOverviewData.bootcampCycles.length > 0
+      ? programOverviewData.bootcampCycles.map((c) => ({
+        id: c?.id ?? "",
+        title: c?.title ?? "",
+        recommended: !!c?.recommended,
+        price: c?.price ?? "",
+        priceLabel: c?.priceLabel ?? "",
+        startDate: c?.startDate ?? "",
+        endDate: c?.endDate ?? "",
+        duration: c?.duration ?? "",
+      }))
+      : defaultContent.programOverview.bootcampCycles,
   };
 
   const fallbackFaq = defaultContent.faq;
@@ -1094,6 +1136,673 @@ export default function AdminPage() {
                   className="px-3 py-2 bg-green-500 text-white rounded text-xs hover:bg-green-600"
                 >
                   + Add Item
+                </button>
+              </div>
+            </div>
+
+            {/* Testimonials */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold">Testimonials</h3>
+              {(content.programOverview?.testimonials || []).map((t, index) => (
+                <div key={index} className="border rounded-lg p-3 space-y-2 bg-gray-50">
+                  <div className="grid md:grid-cols-3 gap-2">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Name
+                      </label>
+                      <input
+                        className="border rounded px-3 py-2 w-full text-sm"
+                        value={t?.name || ""}
+                        onChange={(e) =>
+                          setContent((prev) => {
+                            const next = Array.isArray(prev.programOverview?.testimonials)
+                              ? [...prev.programOverview.testimonials]
+                              : [];
+                            next[index] = { ...next[index], name: e.target.value };
+                            return {
+                              ...prev,
+                              programOverview: { ...prev.programOverview, testimonials: next },
+                            };
+                          })
+                        }
+                        placeholder="Person's name"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Quote
+                      </label>
+                      <input
+                        className="border rounded px-3 py-2 w-full text-sm"
+                        value={t?.quote || ""}
+                        onChange={(e) =>
+                          setContent((prev) => {
+                            const next = Array.isArray(prev.programOverview?.testimonials)
+                              ? [...prev.programOverview.testimonials]
+                              : [];
+                            next[index] = { ...next[index], quote: e.target.value };
+                            return {
+                              ...prev,
+                              programOverview: { ...prev.programOverview, testimonials: next },
+                            };
+                          })
+                        }
+                        placeholder="Short testimonial"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Image URL
+                    </label>
+                    <input
+                      className="border rounded px-3 py-2 w-full text-sm"
+                      value={t?.image || ""}
+                      onChange={(e) =>
+                        setContent((prev) => {
+                          const next = Array.isArray(prev.programOverview?.testimonials)
+                            ? [...prev.programOverview.testimonials]
+                            : [];
+                          next[index] = { ...next[index], image: e.target.value };
+                          return {
+                            ...prev,
+                            programOverview: { ...prev.programOverview, testimonials: next },
+                          };
+                        })
+                      }
+                      placeholder="/images/person.png or https://..."
+                    />
+                  </div>
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setContent((prev) => {
+                          const current = Array.isArray(prev.programOverview?.testimonials)
+                            ? [...prev.programOverview.testimonials]
+                            : [];
+                          const next = current.filter((_, i) => i !== index);
+                          return {
+                            ...prev,
+                            programOverview: { ...prev.programOverview, testimonials: next },
+                          };
+                        })
+                      }
+                      className="px-2 py-2 bg-red-500 text-white rounded text-xs hover:bg-red-600"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() =>
+                  setContent((prev) => {
+                    const current = Array.isArray(prev.programOverview?.testimonials)
+                      ? [...prev.programOverview.testimonials]
+                      : [];
+                    return {
+                      ...prev,
+                      programOverview: {
+                        ...prev.programOverview,
+                        testimonials: [
+                          ...current,
+                          { name: "", quote: "", image: "" },
+                        ],
+                      },
+                    };
+                  })
+                }
+                className="px-3 py-2 bg-green-500 text-white rounded text-xs hover:bg-green-600"
+              >
+                + Add Testimonial
+              </button>
+            </div>
+
+            {/* Instructor */}
+            <div className="space-y-3 border-t pt-6">
+              <h3 className="text-sm font-semibold">Instructor</h3>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium">Role Label</label>
+                  <input
+                    className="border rounded px-3 py-2 w-full"
+                    value={content.programOverview?.instructor?.roleLabel || ""}
+                    onChange={(e) =>
+                      setContent((prev) => ({
+                        ...prev,
+                        programOverview: {
+                          ...prev.programOverview,
+                          instructor: { ...prev.programOverview?.instructor, roleLabel: e.target.value },
+                        },
+                      }))
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium">Name</label>
+                  <input
+                    className="border rounded px-3 py-2 w-full"
+                    value={content.programOverview?.instructor?.name || ""}
+                    onChange={(e) =>
+                      setContent((prev) => ({
+                        ...prev,
+                        programOverview: {
+                          ...prev.programOverview,
+                          instructor: { ...prev.programOverview?.instructor, name: e.target.value },
+                        },
+                      }))
+                    }
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium">Bio</label>
+                  <textarea
+                    className="border rounded px-3 py-2 w-full min-h-[80px] text-sm"
+                    value={content.programOverview?.instructor?.bio || ""}
+                    onChange={(e) =>
+                      setContent((prev) => ({
+                        ...prev,
+                        programOverview: {
+                          ...prev.programOverview,
+                          instructor: { ...prev.programOverview?.instructor, bio: e.target.value },
+                        },
+                      }))
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium">Background</label>
+                  <input
+                    className="border rounded px-3 py-2 w-full"
+                    value={content.programOverview?.instructor?.background || ""}
+                    onChange={(e) =>
+                      setContent((prev) => ({
+                        ...prev,
+                        programOverview: {
+                          ...prev.programOverview,
+                          instructor: { ...prev.programOverview?.instructor, background: e.target.value },
+                        },
+                      }))
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium">Focus</label>
+                  <input
+                    className="border rounded px-3 py-2 w-full"
+                    value={content.programOverview?.instructor?.focus || ""}
+                    onChange={(e) =>
+                      setContent((prev) => ({
+                        ...prev,
+                        programOverview: {
+                          ...prev.programOverview,
+                          instructor: { ...prev.programOverview?.instructor, focus: e.target.value },
+                        },
+                      }))
+                    }
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium">Teaching Style</label>
+                  <textarea
+                    className="border rounded px-3 py-2 w-full min-h-[80px] text-sm"
+                    value={content.programOverview?.instructor?.teachingStyle || ""}
+                    onChange={(e) =>
+                      setContent((prev) => ({
+                        ...prev,
+                        programOverview: {
+                          ...prev.programOverview,
+                          instructor: { ...prev.programOverview?.instructor, teachingStyle: e.target.value },
+                        },
+                      }))
+                    }
+                  />
+                </div>
+
+                {/* Instructor Image Upload */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium mb-2">Instructor Image</label>
+                  <div className="space-y-2">
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Upload Image from Local
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          id="instructor-image-upload"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            if (!password) {
+                              setStatus("❌ Please enter the admin password first before uploading files");
+                              return;
+                            }
+                            try {
+                              const formData = new FormData();
+                              formData.append("file", file);
+                              const oldUrl = content.programOverview?.instructor?.image || "";
+                              if (oldUrl && oldUrl.startsWith("https://")) {
+                                formData.append("oldUrl", oldUrl);
+                              }
+                              const res = await fetch("/api/upload", {
+                                method: "POST",
+                                headers: { "x-edit-password": password },
+                                body: formData,
+                              });
+                              const data = await res.json();
+                              if (res.ok && data?.url) {
+                                setContent((prev) => ({
+                                  ...prev,
+                                  programOverview: {
+                                    ...prev.programOverview,
+                                    instructor: { ...prev.programOverview?.instructor, image: data.url },
+                                  },
+                                }));
+                                setStatus("Instructor image uploaded ✅");
+                              } else {
+                                setStatus(`Upload failed ❌ ${data?.error || "Unknown error"}`);
+                              }
+                            } catch (err) {
+                              setStatus(`Upload failed ❌ ${err?.message || "Network error"}`);
+                            }
+                          }}
+                        />
+                        <label
+                          htmlFor="instructor-image-upload"
+                          className="inline-block px-4 py-2 rounded-md text-sm font-semibold bg-primary text-white hover:bg-primary/90 transition-colors cursor-pointer"
+                        >
+                          Choose Image
+                        </label>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Or Paste Image URL
+                      </label>
+                      <input
+                        type="text"
+                        className="border rounded px-3 py-2 w-full text-sm"
+                        value={content.programOverview?.instructor?.image || ""}
+                        onChange={(e) =>
+                          setContent((prev) => ({
+                            ...prev,
+                            programOverview: {
+                              ...prev.programOverview,
+                              instructor: { ...prev.programOverview?.instructor, image: e.target.value },
+                            },
+                          }))
+                        }
+                        placeholder="/images/person.png or https://..."
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tags */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium">Tags</label>
+                  <div className="space-y-2">
+                    {(content.programOverview?.instructor?.tags || []).map((tag, i) => (
+                      <div key={i} className="flex gap-2 items-center">
+                        <input
+                          className="border rounded px-3 py-2 w-full text-sm"
+                          value={tag}
+                          onChange={(e) =>
+                            setContent((prev) => {
+                              const next = Array.isArray(prev.programOverview?.instructor?.tags)
+                                ? [...prev.programOverview.instructor.tags]
+                                : [];
+                              next[i] = e.target.value;
+                              return {
+                                ...prev,
+                                programOverview: {
+                                  ...prev.programOverview,
+                                  instructor: { ...prev.programOverview?.instructor, tags: next },
+                                },
+                              };
+                            })
+                          }
+                          placeholder="Tag"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setContent((prev) => {
+                              const current = Array.isArray(prev.programOverview?.instructor?.tags)
+                                ? [...prev.programOverview.instructor.tags]
+                                : [];
+                              const next = current.filter((_, idx) => idx !== i);
+                              return {
+                                ...prev,
+                                programOverview: {
+                                  ...prev.programOverview,
+                                  instructor: { ...prev.programOverview?.instructor, tags: next },
+                                },
+                              };
+                            })
+                          }
+                          className="px-2 py-2 bg-red-500 text-white rounded text-xs hover:bg-red-600"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setContent((prev) => {
+                          const current = Array.isArray(prev.programOverview?.instructor?.tags)
+                            ? [...prev.programOverview.instructor.tags]
+                            : [];
+                          return {
+                            ...prev,
+                            programOverview: {
+                              ...prev.programOverview,
+                              instructor: { ...prev.programOverview?.instructor, tags: [...current, ""] },
+                            },
+                          };
+                        })
+                      }
+                      className="px-3 py-2 bg-green-500 text-white rounded text-xs hover:bg-green-600"
+                    >
+                      + Add Tag
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Course Details */}
+            <div className="space-y-3 border-t pt-6">
+              <h3 className="text-sm font-semibold">Course Details</h3>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium">Duration Text</label>
+                  <input
+                    className="border rounded px-3 py-2 w-full"
+                    value={content.programOverview?.courseDetails?.durationText || ""}
+                    onChange={(e) =>
+                      setContent((prev) => ({
+                        ...prev,
+                        programOverview: {
+                          ...prev.programOverview,
+                          courseDetails: { ...prev.programOverview?.courseDetails, durationText: e.target.value },
+                        },
+                      }))
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium">Schedule Text</label>
+                  <textarea
+                    className="border rounded px-3 py-2 w-full min-h-[80px] text-sm"
+                    value={content.programOverview?.courseDetails?.scheduleText || ""}
+                    onChange={(e) =>
+                      setContent((prev) => ({
+                        ...prev,
+                        programOverview: {
+                          ...prev.programOverview,
+                          courseDetails: { ...prev.programOverview?.courseDetails, scheduleText: e.target.value },
+                        },
+                      }))
+                    }
+                    placeholder={"Full-Time:\nMon-Fri, 9am - 5pm"}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium">Dates</label>
+                  <div className="space-y-2">
+                    {(content.programOverview?.courseDetails?.dates || []).map((d, i) => (
+                      <div key={i} className="flex gap-2 items-center">
+                        <input
+                          className="border rounded px-3 py-2 w-full text-sm"
+                          value={d}
+                          onChange={(e) =>
+                            setContent((prev) => {
+                              const next = Array.isArray(prev.programOverview?.courseDetails?.dates)
+                                ? [...prev.programOverview.courseDetails.dates]
+                                : [];
+                              next[i] = e.target.value;
+                              return {
+                                ...prev,
+                                programOverview: {
+                                  ...prev.programOverview,
+                                  courseDetails: { ...prev.programOverview?.courseDetails, dates: next },
+                                },
+                              };
+                            })
+                          }
+                          placeholder="e.g. October 28, 2025"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setContent((prev) => {
+                              const current = Array.isArray(prev.programOverview?.courseDetails?.dates)
+                                ? [...prev.programOverview.courseDetails.dates]
+                                : [];
+                              const next = current.filter((_, idx) => idx !== i);
+                              return {
+                                ...prev,
+                                programOverview: {
+                                  ...prev.programOverview,
+                                  courseDetails: { ...prev.programOverview?.courseDetails, dates: next },
+                                },
+                              };
+                            })
+                          }
+                          className="px-2 py-2 bg-red-500 text-white rounded text-xs hover:bg-red-600"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setContent((prev) => {
+                          const current = Array.isArray(prev.programOverview?.courseDetails?.dates)
+                            ? [...prev.programOverview.courseDetails.dates]
+                            : [];
+                          return {
+                            ...prev,
+                            programOverview: {
+                              ...prev.programOverview,
+                              courseDetails: { ...prev.programOverview?.courseDetails, dates: [...current, ""] },
+                            },
+                          };
+                        })
+                      }
+                      className="px-3 py-2 bg-green-500 text-white rounded text-xs hover:bg-green-600"
+                    >
+                      + Add Date
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bootcamp Cycles */}
+            <div className="space-y-3 border-t pt-6">
+              <h3 className="text-sm font-semibold">Bootcamp Cycles</h3>
+              <div className="space-y-3">
+                {(content.programOverview?.bootcampCycles || []).map((c, index) => (
+                  <div key={index} className="border rounded-lg p-3 space-y-2 bg-gray-50">
+                    <div className="grid md:grid-cols-3 gap-2">
+                      <input
+                        className="border rounded px-3 py-2 w-full text-sm"
+                        placeholder="ID (e.g. current)"
+                        value={c?.id || ""}
+                        onChange={(e) =>
+                          setContent((prev) => {
+                            const next = Array.isArray(prev.programOverview?.bootcampCycles)
+                              ? [...prev.programOverview.bootcampCycles]
+                              : [];
+                            next[index] = { ...next[index], id: e.target.value };
+                            return { ...prev, programOverview: { ...prev.programOverview, bootcampCycles: next } };
+                          })
+                        }
+                      />
+                      <input
+                        className="border rounded px-3 py-2 w-full text-sm"
+                        placeholder="Title"
+                        value={c?.title || ""}
+                        onChange={(e) =>
+                          setContent((prev) => {
+                            const next = Array.isArray(prev.programOverview?.bootcampCycles)
+                              ? [...prev.programOverview.bootcampCycles]
+                              : [];
+                            next[index] = { ...next[index], title: e.target.value };
+                            return { ...prev, programOverview: { ...prev.programOverview, bootcampCycles: next } };
+                          })
+                        }
+                      />
+                      <label className="inline-flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={!!c?.recommended}
+                          onChange={(e) =>
+                            setContent((prev) => {
+                              const next = Array.isArray(prev.programOverview?.bootcampCycles)
+                                ? [...prev.programOverview.bootcampCycles]
+                                : [];
+                              next[index] = { ...next[index], recommended: e.target.checked };
+                              return { ...prev, programOverview: { ...prev.programOverview, bootcampCycles: next } };
+                            })
+                          }
+                        />
+                        Recommended
+                      </label>
+                    </div>
+                    <div className="grid md:grid-cols-3 gap-2">
+                      <input
+                        className="border rounded px-3 py-2 w-full text-sm"
+                        placeholder="Price (e.g. $220.00)"
+                        value={c?.price || ""}
+                        onChange={(e) =>
+                          setContent((prev) => {
+                            const next = Array.isArray(prev.programOverview?.bootcampCycles)
+                              ? [...prev.programOverview.bootcampCycles]
+                              : [];
+                            next[index] = { ...next[index], price: e.target.value };
+                            return { ...prev, programOverview: { ...prev.programOverview, bootcampCycles: next } };
+                          })
+                        }
+                      />
+                      <input
+                        className="border rounded px-3 py-2 w-full text-sm"
+                        placeholder="Price Label (e.g. one-time)"
+                        value={c?.priceLabel || ""}
+                        onChange={(e) =>
+                          setContent((prev) => {
+                            const next = Array.isArray(prev.programOverview?.bootcampCycles)
+                              ? [...prev.programOverview.bootcampCycles]
+                              : [];
+                            next[index] = { ...next[index], priceLabel: e.target.value };
+                            return { ...prev, programOverview: { ...prev.programOverview, bootcampCycles: next } };
+                          })
+                        }
+                      />
+                      <input
+                        className="border rounded px-3 py-2 w-full text-sm"
+                        placeholder="Duration (e.g. 5-Week Intensive)"
+                        value={c?.duration || ""}
+                        onChange={(e) =>
+                          setContent((prev) => {
+                            const next = Array.isArray(prev.programOverview?.bootcampCycles)
+                              ? [...prev.programOverview.bootcampCycles]
+                              : [];
+                            next[index] = { ...next[index], duration: e.target.value };
+                            return { ...prev, programOverview: { ...prev.programOverview, bootcampCycles: next } };
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-2">
+                      <input
+                        className="border rounded px-3 py-2 w-full text-sm"
+                        placeholder="Start Date"
+                        value={c?.startDate || ""}
+                        onChange={(e) =>
+                          setContent((prev) => {
+                            const next = Array.isArray(prev.programOverview?.bootcampCycles)
+                              ? [...prev.programOverview.bootcampCycles]
+                              : [];
+                            next[index] = { ...next[index], startDate: e.target.value };
+                            return { ...prev, programOverview: { ...prev.programOverview, bootcampCycles: next } };
+                          })
+                        }
+                      />
+                      <input
+                        className="border rounded px-3 py-2 w-full text-sm"
+                        placeholder="End Date"
+                        value={c?.endDate || ""}
+                        onChange={(e) =>
+                          setContent((prev) => {
+                            const next = Array.isArray(prev.programOverview?.bootcampCycles)
+                              ? [...prev.programOverview.bootcampCycles]
+                              : [];
+                            next[index] = { ...next[index], endDate: e.target.value };
+                            return { ...prev, programOverview: { ...prev.programOverview, bootcampCycles: next } };
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setContent((prev) => {
+                            const current = Array.isArray(prev.programOverview?.bootcampCycles)
+                              ? [...prev.programOverview.bootcampCycles]
+                              : [];
+                            const next = current.filter((_, i) => i !== index);
+                            return { ...prev, programOverview: { ...prev.programOverview, bootcampCycles: next } };
+                          })
+                        }
+                        className="px-2 py-2 bg-red-500 text-white rounded text-xs hover:bg-red-600"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setContent((prev) => {
+                      const current = Array.isArray(prev.programOverview?.bootcampCycles)
+                        ? [...prev.programOverview.bootcampCycles]
+                        : [];
+                      return {
+                        ...prev,
+                        programOverview: {
+                          ...prev.programOverview,
+                          bootcampCycles: [
+                            ...current,
+                            {
+                              id: "",
+                              title: "",
+                              recommended: false,
+                              price: "",
+                              priceLabel: "",
+                              startDate: "",
+                              endDate: "",
+                              duration: "",
+                            },
+                          ],
+                        },
+                      };
+                    })
+                  }
+                  className="px-3 py-2 bg-green-500 text-white rounded text-xs hover:bg-green-600"
+                >
+                  + Add Bootcamp Cycle
                 </button>
               </div>
             </div>

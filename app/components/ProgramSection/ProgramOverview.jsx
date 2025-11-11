@@ -18,51 +18,10 @@ import FAQSection from "./FAQ";
 import ContactForm from "./ContactForm";
 import { defaultContent } from "@/lib/constants";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Navigation, Pagination, A11y, Autoplay } from "swiper/modules";
 
 export default function ProgramOverview({ faq, programOverview }) {
   const router = useRouter();
   const [selectedCycle, setSelectedCycle] = useState("current");
-
-  const bootcampCycles = [
-    {
-      id: "current",
-      title: "Current Bootcamp Cycle",
-      recommended: true,
-      price: "$220.00",
-      priceLabel: "one-time",
-      startDate: "March 15, 2025",
-      endDate: "April 19, 2025",
-      duration: "5-Week Intensive",
-    },
-    {
-      id: "next",
-      title: "Next Bootcamp Cycle",
-      recommended: false,
-      price: "$220.00",
-      priceLabel: "one-time",
-      startDate: "May 15, 2025",
-      endDate: "June 19, 2025",
-      duration: "5-Week Intensive",
-    },
-  ];
-  const testimonials = [
-    {
-      name: "Marco",
-      quote:
-        "“Before this bootcamp, I had no IT background. After 5 weeks, I landed my first internship. Highly recommend!”",
-      img: "/images/person1.png",
-      alt: "Marco",
-    },
-    {
-      name: "John",
-      quote:
-        "“Very practical and easy to understand. The instructor was amazing and helped me build confidence.”",
-      img: "/images/person2.png",
-      alt: "John",
-    },
-    // add more if you like
-  ];
 
   const handleSelectCycle = (cycleId) => {
     setSelectedCycle(cycleId);
@@ -88,6 +47,17 @@ export default function ProgramOverview({ faq, programOverview }) {
     Array.isArray(po?.outcomes) && po.outcomes.length > 0
       ? po.outcomes
       : defaultContent.programOverview.outcomes;
+  const testimonials =
+    Array.isArray(po?.testimonials) && po.testimonials.length > 0
+      ? po.testimonials
+      : defaultContent.programOverview.testimonials;
+  const instructor = po?.instructor || defaultContent.programOverview.instructor;
+  const courseDetails =
+    po?.courseDetails || defaultContent.programOverview.courseDetails;
+  const bootcampCycles =
+    Array.isArray(po?.bootcampCycles) && po.bootcampCycles.length > 0
+      ? po.bootcampCycles
+      : defaultContent.programOverview.bootcampCycles;
 
   return (
     <>
@@ -181,7 +151,7 @@ export default function ProgramOverview({ faq, programOverview }) {
                   <h3 className="text-2xl font-bold text-black mb-2">
                     Duration
                   </h3>
-                  <p className="text-lg text-black/70">5 week Intensive</p>
+                  <p className="text-lg text-black/70">{courseDetails?.durationText || ""}</p>
                 </div>
               </div>
 
@@ -193,8 +163,8 @@ export default function ProgramOverview({ faq, programOverview }) {
                   <h3 className="text-2xl font-bold text-black mb-2">
                     Schedule
                   </h3>
-                  <p className="text-lg text-black/70">
-                    Full-Time: <br /> Mon-Fri, 9am - 5pm
+                  <p className="text-lg text-black/70 whitespace-pre-line">
+                    {courseDetails?.scheduleText || ""}
                   </p>
                 </div>
               </div>
@@ -208,8 +178,9 @@ export default function ProgramOverview({ faq, programOverview }) {
                     Duration
                   </h3>
                   <ul className="space-y-2">
-                    <li className="text-lg text-black/70">October 28, 2025</li>
-                    <li className="text-lg text-black/70">January 6, 2026</li>
+                    {(courseDetails?.dates || []).map((d, i) => (
+                      <li key={i} className="text-lg text-black/70">{d}</li>
+                    ))}
                   </ul>
                 </div>
               </div>
@@ -238,11 +209,10 @@ export default function ProgramOverview({ faq, programOverview }) {
                   {/* Selection Button */}
                   <button
                     onClick={() => handleSelectCycle(cycle.id)}
-                    className={`w-full py-3 rounded-lg font-semibold mb-6 transition-colors ${
-                      selectedCycle === cycle.id
-                        ? "bg-primary text-white"
-                        : "bg-gray-300 text-white border border-gray-400"
-                    }`}
+                    className={`w-full py-3 rounded-lg font-semibold mb-6 transition-colors ${selectedCycle === cycle.id
+                      ? "bg-primary text-white"
+                      : "bg-gray-300 text-white border border-gray-400"
+                      }`}
                   >
                     Selected
                   </button>
@@ -399,16 +369,27 @@ export default function ProgramOverview({ faq, programOverview }) {
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 lg:gap-12 items-start">
             <div className="flex flex-col items-center lg:items-start  col-span-1">
               {/* Photo Placeholder */}
-              <div className="w-full max-w-[300px] aspect-square bg-gray-200 rounded-lg flex items-center justify-center mb-4">
-                <span className="text-gray-400 text-lg">Photo</span>
-              </div>
+              {instructor?.image ? (
+                <div className="w-full max-w-[300px] aspect-square rounded-lg overflow-hidden relative mb-4">
+                  <Image
+                    src={instructor.image}
+                    alt={instructor?.name || "Instructor"}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="w-full max-w-[300px] aspect-square bg-gray-200 rounded-lg flex items-center justify-center mb-4">
+                  <span className="text-gray-400 text-lg">Photo</span>
+                </div>
+              )}
 
               <div className="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-full">
                 <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
                   <FaUserTie className="text-white text-xs" />
                 </div>
                 <span className="text-black font-semibold text-sm">
-                  Lead Instructor
+                  {instructor?.roleLabel || "Lead Instructor"}
                 </span>
               </div>
             </div>
@@ -421,15 +402,12 @@ export default function ProgramOverview({ faq, programOverview }) {
 
               {/* Instructor Name */}
               <h3 className="text-3xl md:text-4xl font-bold text-black mb-4">
-                [Instructor Name]
+                {instructor?.name || "[Instructor Name]"}
               </h3>
 
               {/* Description */}
               <p className="text-lg text-black/70 mb-6">
-                10+ years in real IT support, on-call, and onsite
-                troubleshooting. Hired and trained junior techs. Knows exactly
-                what managers listen for in interviews — because they were that
-                manager.
+                {instructor?.bio || ""}
               </p>
 
               {/* Information Cards */}
@@ -439,17 +417,13 @@ export default function ProgramOverview({ faq, programOverview }) {
                   <h4 className="text-lg font-bold text-black mb-2">
                     Background
                   </h4>
-                  <p className="text-black/70">
-                    Helpdesk lead, field technician, escalation engineer
-                  </p>
+                  <p className="text-black/70">{instructor?.background || ""}</p>
                 </div>
 
                 {/* Focus Card */}
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h4 className="text-lg font-bold text-black mb-2">Focus</h4>
-                  <p className="text-black/70">
-                    Making beginners production-ready fast
-                  </p>
+                  <p className="text-black/70">{instructor?.focus || ""}</p>
                 </div>
 
                 {/* Teaching Style Card */}
@@ -457,24 +431,17 @@ export default function ProgramOverview({ faq, programOverview }) {
                   <h4 className="text-lg font-bold text-black mb-2">
                     Teaching style
                   </h4>
-                  <p className="text-black/70">
-                    No ego, no jargon. We demo, you do, we correct, you repeat
-                    until it&apos;s instinct.
-                  </p>
+                  <p className="text-black/70">{instructor?.teachingStyle || ""}</p>
                 </div>
               </div>
 
               {/* Skill Tags */}
               <div className="flex flex-wrap gap-3">
-                <span className="bg-gray-100 text-black px-4 py-2 rounded-full text-sm font-medium">
-                  Hiring experience
-                </span>
-                <span className="bg-gray-100 text-black px-4 py-2 rounded-full text-sm font-medium">
-                  Real-world tickets
-                </span>
-                <span className="bg-gray-100 text-black px-4 py-2 rounded-full text-sm font-medium">
-                  Interview prep
-                </span>
+                {(instructor?.tags || []).map((tag, i) => (
+                  <span key={i} className="bg-gray-100 text-black px-4 py-2 rounded-full text-sm font-medium">
+                    {tag}
+                  </span>
+                ))}
               </div>
             </div>
           </div>
@@ -506,52 +473,37 @@ export default function ProgramOverview({ faq, programOverview }) {
             What Our Students Say
           </h2>
 
-          {/* Testimonial Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mx-auto">
-            {/* Testimonial 1 - Marco */}
-            <div className="bg-gray-100 rounded-lg p-6 md:p-8 text-center">
-              {/* Profile Picture */}
-              <div className="flex justify-center mb-4">
-                <div className="w-20 h-20 rounded-full overflow-hidden relative">
-                  <Image
-                    src="/images/person1.png"
-                    alt="Marco"
-                    fill
-                    className="object-cover"
-                  />
+          {/* Testimonial Slider */}
+          <Swiper
+            spaceBetween={24}
+            slidesPerView={1}
+            breakpoints={{
+              768: { slidesPerView: 2, spaceBetween: 24 },
+            }}
+          >
+            {testimonials.map((t, idx) => (
+              <SwiperSlide key={idx}>
+                <div className="bg-gray-100 rounded-lg p-6 md:p-8 text-center h-full">
+                  <div className="flex justify-center mb-4">
+                    <div className="w-20 h-20 rounded-full overflow-hidden relative">
+                      <Image
+                        src={t?.image || "/images/person1.png"}
+                        alt={t?.name || "Student"}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-lg text-black/70 mb-4">
+                    {t?.quote || ""}
+                  </p>
+                  <p className="text-xl font-bold text-black">
+                    {t?.name || ""}
+                  </p>
                 </div>
-              </div>
-              {/* Quote */}
-              <p className="text-lg text-black/70 mb-4 ">
-                &quot;Before this bootcamp, I had no IT background. After 5
-                weeks, I landed my first internship. Highly recommend!&quot;
-              </p>
-              {/* Name */}
-              <p className="text-xl font-bold text-black">Marco</p>
-            </div>
-
-            {/* Testimonial 2 - John */}
-            <div className="bg-gray-100 rounded-lg p-6 md:p-8 text-center">
-              {/* Profile Picture */}
-              <div className="flex justify-center mb-4">
-                <div className="w-20 h-20 rounded-full overflow-hidden relative">
-                  <Image
-                    src="/images/person2.png"
-                    alt="John"
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-              </div>
-              {/* Quote */}
-              <p className="text-lg text-black/70 mb-4">
-                &quot;Very practical and easy to understand. The instructor was
-                amazing and helped me build confidence.&quot;
-              </p>
-              {/* Name */}
-              <p className="text-xl font-bold text-black">John</p>
-            </div>
-          </div>
+              </SwiperSlide>
+            ))}
+          </Swiper>
         </div>
       </section>
 

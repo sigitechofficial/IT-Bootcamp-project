@@ -2,15 +2,19 @@ import Link from "next/link";
 import { kv } from "@vercel/kv";
 import { defaultContent, KV_KEY } from "@/lib/constants";
 
-export default async function Header() {
-  let content = null;
-  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
-    try {
-      content = await kv.get(KV_KEY);
-    } catch (error) {
-      console.error("KV error:", error);
+export default async function Header({ content: passedContent }) {
+  // Use passed content or fetch from KV if not provided
+  let content = passedContent;
+  if (!content) {
+    if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+      try {
+        content = await kv.get(KV_KEY);
+      } catch (error) {
+        console.error("KV error:", error);
+      }
     }
   }
+  
   const finalContent = content || defaultContent;
   const header = finalContent.header || defaultContent.header;
   const { logo, menu, button } = header;

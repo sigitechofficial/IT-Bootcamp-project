@@ -52,6 +52,41 @@ export default function ProgramOverview({ faq, programOverview }) {
       ? po.testimonials
       : defaultContent.programOverview.testimonials;
   const instructor = po?.instructor || defaultContent.programOverview.instructor;
+  const youtube = po?.youtube || defaultContent.programOverview.youtube;
+
+  function getYouTubeEmbedUrl(input) {
+    if (!input || typeof input !== "string") return "";
+    try {
+      const url = new URL(input);
+      if (url.hostname === "youtu.be") {
+        const id = url.pathname.replace("/", "");
+        return id ? `https://www.youtube.com/embed/${id}` : "";
+      }
+      const host = url.hostname.replace(/^www\./, "");
+      if (host === "youtube.com" || host === "m.youtube.com") {
+        const v = url.searchParams.get("v");
+        if (v) return `https://www.youtube.com/embed/${v}`;
+        if (url.pathname.startsWith("/shorts/")) {
+          const id = url.pathname.split("/")[2];
+          if (id) return `https://www.youtube.com/embed/${id}`;
+        }
+        if (url.pathname.startsWith("/embed/")) {
+          return url.toString();
+        }
+      }
+      if (/youtube\.com\/embed\//i.test(input)) {
+        return input;
+      }
+    } catch {
+      // ignore
+    }
+    return "";
+  }
+
+  const embedSrc =
+    getYouTubeEmbedUrl(youtube?.embedUrl) ||
+    getYouTubeEmbedUrl(youtube?.ctaUrl) ||
+    "https://www.youtube.com/embed/dQw4w9WgXcQ";
   const courseDetails =
     po?.courseDetails || defaultContent.programOverview.courseDetails;
   const bootcampCycles =
@@ -337,7 +372,7 @@ export default function ProgramOverview({ faq, programOverview }) {
                 stories, and what you&apos;ll learn in this intensive bootcamp.
               </p>
               <a
-                href="https://www.youtube.com"
+                href={youtube?.ctaUrl || "https://www.youtube.com"}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg font-semibold transition-colors w-fit"
@@ -352,9 +387,10 @@ export default function ProgramOverview({ faq, programOverview }) {
               <div className="relative w-full aspect-video rounded-lg overflow-hidden shadow-lg">
                 <iframe
                   className="absolute top-0 left-0 w-full h-full"
-                  src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+                  src={embedSrc}
                   title="YouTube video player"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerPolicy="strict-origin-when-cross-origin"
                   allowFullScreen
                 ></iframe>
               </div>

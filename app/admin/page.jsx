@@ -37,6 +37,12 @@ function normalizeContent(data) {
     ...programOverviewData,
     title: programOverviewData.title ?? defaultContent.programOverview.title,
     subtitle: programOverviewData.subtitle ?? defaultContent.programOverview.subtitle,
+    youtube: {
+      ...defaultContent.programOverview.youtube,
+      ...(programOverviewData.youtube || {}),
+      ctaUrl: programOverviewData.youtube?.ctaUrl ?? defaultContent.programOverview.youtube.ctaUrl,
+      embedUrl: programOverviewData.youtube?.embedUrl ?? defaultContent.programOverview.youtube.embedUrl,
+    },
     whatYouLearn: Array.isArray(programOverviewData.whatYouLearn) && programOverviewData.whatYouLearn.length > 0
       ? programOverviewData.whatYouLearn
       : defaultContent.programOverview.whatYouLearn,
@@ -53,6 +59,12 @@ function normalizeContent(data) {
         image: t?.image ?? "",
       }))
       : defaultContent.programOverview.testimonials,
+    youtube: {
+      ...defaultContent.programOverview.youtube,
+      ...(programOverviewData.youtube || {}),
+      ctaUrl: programOverviewData.youtube?.ctaUrl ?? defaultContent.programOverview.youtube.ctaUrl,
+      embedUrl: programOverviewData.youtube?.embedUrl ?? defaultContent.programOverview.youtube.embedUrl,
+    },
     instructor: {
       ...defaultContent.programOverview.instructor,
       ...(programOverviewData.instructor || {}),
@@ -1258,6 +1270,87 @@ export default function AdminPage() {
               >
                 + Add Testimonial
               </button>
+            </div>
+
+            {/* YouTube Links */}
+            <div className="space-y-3 border-t pt-6">
+              <h3 className="text-sm font-semibold">YouTube</h3>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium">CTA URL (channel or video)</label>
+                  <input
+                    className="border rounded px-3 py-2 w-full"
+                    placeholder="https://www.youtube.com/@yourchannel"
+                    value={content.programOverview?.youtube?.ctaUrl || ""}
+                    onChange={(e) =>
+                      setContent((prev) => ({
+                        ...prev,
+                        programOverview: {
+                          ...prev.programOverview,
+                          youtube: { ...prev.programOverview?.youtube, ctaUrl: e.target.value },
+                        },
+                      }))
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium">Embed URL</label>
+                  <input
+                    className="border rounded px-3 py-2 w-full"
+                    placeholder="https://www.youtube.com/embed/VIDEO_ID"
+                    value={content.programOverview?.youtube?.embedUrl || ""}
+                    onChange={(e) =>
+                      setContent((prev) => ({
+                        ...prev,
+                        programOverview: {
+                          ...prev.programOverview,
+                          youtube: { ...prev.programOverview?.youtube, embedUrl: e.target.value },
+                        },
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+            {/* YouTube Section */}
+            <div className="space-y-3 border-t pt-6">
+              <h3 className="text-sm font-semibold">YouTube Section</h3>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium">CTA Link URL</label>
+                  <input
+                    className="border rounded px-3 py-2 w-full"
+                    value={content.programOverview?.youtube?.ctaUrl || ""}
+                    onChange={(e) =>
+                      setContent((prev) => ({
+                        ...prev,
+                        programOverview: {
+                          ...prev.programOverview,
+                          youtube: { ...prev.programOverview?.youtube, ctaUrl: e.target.value },
+                        },
+                      }))
+                    }
+                    placeholder="https://www.youtube.com/@yourchannel"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium">Embed URL</label>
+                  <input
+                    className="border rounded px-3 py-2 w-full"
+                    value={content.programOverview?.youtube?.embedUrl || ""}
+                    onChange={(e) =>
+                      setContent((prev) => ({
+                        ...prev,
+                        programOverview: {
+                          ...prev.programOverview,
+                          youtube: { ...prev.programOverview?.youtube, embedUrl: e.target.value },
+                        },
+                      }))
+                    }
+                    placeholder="https://www.youtube.com/embed/VIDEO_ID"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Instructor */}

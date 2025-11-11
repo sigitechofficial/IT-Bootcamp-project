@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import FAQSection from "@/app/components/ProgramSection/FAQ";
 import { defaultContent } from "@/lib/constants";
+import Header from "@/app/components/Header/Header";
+import Footer from "@/app/components/Footer/Footer";
 
 export default function FaqPage() {
   const [faq, setFaq] = useState(defaultContent.faq);
@@ -29,9 +31,10 @@ export default function FaqPage() {
   // Keep same UX as on home by reusing FAQSection
   return (
     <main className="pt-24">
+      <Header />
       <FAQSection key={`${faq?.items?.length || 0}-${faq?.initialOpenCount || 0}`} faq={faq} />
+      <Footer />
     </main>
   );
 }
-*** End Patch***  }```？」
 

@@ -176,13 +176,15 @@ export default function ProgramOverview({
       </section>
 
       {/* Course Details, Duration & Pricing Section */}
-      <section className="py-16 px-4 bg-[#F6F9FC]">
+      <section id="courses" className="py-16 px-4 bg-[#F6F9FC] scroll-mt-24">
         <div className="max-w-[1179px] mx-auto">
           {/* Main Title */}
-          <h2 className="text-4xl md:text-5xl lg:text-5xl font-bold text-center mb-12 text-black font-switzer">
+          <h2 className="text-4xl md:text-5xl lg:text-5xl font-bold text-center mb-6 text-black font-switzer">
             Course Details, Duration & Pricing
           </h2>
-
+          <p className="text-lg text-center text-black/70 mb-12 max-w-4xl  w-full mx-auto  ">
+            We don&apos;t drown you in theory. You&apos;ll configure systems, break them (on purpose), fix them under time pressure, and learn how real IT teams actually work.
+          </p>
           {/* Content Grid */}
           <div className="flex flex-col gap-8 lg:gap-12  mx-auto flex-wrap ">
             {/* Left: Course Details */}
@@ -219,7 +221,7 @@ export default function ProgramOverview({
                 </div>
                 <div>
                   <h3 className="text-2xl font-bold text-black mb-4">
-                    Duration
+                    Bootcamp Cycle
                   </h3>
                   <ul className="space-y-2">
                     {(courseDetails?.dates || []).map((d, i) => (
@@ -229,78 +231,96 @@ export default function ProgramOverview({
                 </div>
               </div>
             </div>
-
+            <div>
+              <h2 className="text-5xl font-bold text-black text-center  mb-4">Choose your cohort</h2>
+              <p className="text-lg text-center text-black/70 max-w-4xl w-full mx-auto">
+                We launch a new 5-week cycle every 5 weeks. Join one in progress or lock in the next start date.
+              </p>
+            </div>
             {/* Bootcamp Cycle Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mx-auto w-full mb-8">
-              {bootcampCycles.map((cycle) => (
-                <div
-                  key={cycle.id}
-                  className="relative bg-gray-100 rounded-lg p-6 md:p-8"
-                >
-                  {/* Title */}
-                  <h3 className="text-2xl font-bold text-black mb-4">
-                    {cycle.title}
-                  </h3>
 
-                  {/* Price */}
-                  <div className="mb-6">
-                    <span className="text-3xl font-bold text-black">
-                      {cycle.price}
-                    </span>
-                    <span className="text-black ml-2">{cycle.priceLabel}</span>
-                  </div>
+              {bootcampCycles.map((cycle, index) => {
+                const fallbackCycle =
+                  defaultContent.programOverview.bootcampCycles.find((defaultCycle) => defaultCycle.id === cycle?.id) ??
+                  defaultContent.programOverview.bootcampCycles[index] ??
+                  {};
+                const cycleId = cycle?.id || fallbackCycle?.id || `cycle-${index}`;
+                const buttonLabel =
+                  (typeof cycle?.ctaText === "string" && cycle.ctaText.trim().length > 0
+                    ? cycle.ctaText
+                    : fallbackCycle?.ctaText) || "Join current cycle";
 
-                  {/* Selection Button */}
-                  <button
-                    onClick={() => handleSelectCycle(cycle.id)}
-                    className={`w-full py-3 rounded-lg font-semibold mb-6 transition-colors ${selectedCycle === cycle.id
-                      ? "bg-primary text-white"
-                      : "bg-gray-300 text-white border border-gray-400"
-                      }`}
+                return (
+                  <div
+                    key={cycleId}
+                    className="relative bg-gray-100 rounded-lg p-6 md:p-8"
                   >
-                    Selected
-                  </button>
+                    {/* Title */}
+                    <h3 className="text-2xl font-bold text-black mb-4">
+                      {cycle.title}
+                    </h3>
 
-                  {/* Details */}
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <IoIosCheckmarkCircleOutline
-                        size={20}
-                        color="#6B7280"
-                        opacity={0.7}
-                      />
-                      <span className="text-gray-700">
-                        Start Date: {cycle.startDate}
+                    {/* Price */}
+                    <div className="mb-6">
+                      <span className="text-3xl font-bold text-black">
+                        {cycle.price}
                       </span>
+                      <span className="text-black ml-2">{cycle.priceLabel}</span>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <IoIosCheckmarkCircleOutline
-                        size={20}
-                        color="#6B7280"
-                        opacity={0.7}
-                      />
-                      <span className="text-gray-700">
-                        End Date: {cycle.endDate}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <IoIosCheckmarkCircleOutline
-                        size={20}
-                        color="#6B7280"
-                        opacity={0.7}
-                      />
-                      <span className="text-gray-700">{cycle.duration}</span>
+
+                    {/* Selection Button */}
+                    <button
+                      onClick={() => handleSelectCycle(cycleId)}
+                      className={`w-full py-3 rounded-lg font-semibold mb-6 transition-colors ${selectedCycle === cycleId
+                        ? "bg-primary text-white"
+                        : "bg-gray-300 text-white border border-gray-400"
+                        }`}
+                    >
+                      {buttonLabel}
+                    </button>
+
+                    {/* Details */}
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <IoIosCheckmarkCircleOutline
+                          size={20}
+                          color="#6B7280"
+                          opacity={0.7}
+                        />
+                        <span className="text-gray-700">
+                          Start Date: {cycle.startDate}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <IoIosCheckmarkCircleOutline
+                          size={20}
+                          color="#6B7280"
+                          opacity={0.7}
+                        />
+                        <span className="text-gray-700">
+                          End Date: {cycle.endDate}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <IoIosCheckmarkCircleOutline
+                          size={20}
+                          color="#6B7280"
+                          opacity={0.7}
+                        />
+                        <span className="text-gray-700">{cycle.duration}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
       </section>
 
       {/* Why Choose ITJobNow? Section */}
-      <section className="py-16 px-4 bg-white">
+      <section id="whyUs" className="py-16 px-4 bg-white scroll-mt-24">
         <div className="max-w-7xl mx-auto">
           {/* Main Title */}
           <h2 className="text-4xl md:text-5xl lg:text-5xl font-bold text-center mb-12 text-black font-switzer">
@@ -514,10 +534,10 @@ export default function ProgramOverview({
       <section className="py-16 px-4 bg-white">
         <div className="max-w-[1200px] mx-auto">
           {/* Title */}
-          <h2 className="text-4xl md:text-5xl lg:text-5xl font-bold text-center mb-12 text-black font-switzer">
+          <h2 className="text-4xl md:text-5xl lg:text-5xl font-bold text-center mb-3 text-black font-switzer">
             What Our Students Say
           </h2>
-
+          <p className="text-lg text-center text-black/70 max-w-4xl  w-full mx-auto  mb-10">People who started with zero IT background now working in helpdesk, onsite support, and junior tech roles.</p>
           {/* Testimonial Slider */}
           <Swiper
             spaceBetween={24}

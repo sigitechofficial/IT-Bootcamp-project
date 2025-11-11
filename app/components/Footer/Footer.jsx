@@ -12,6 +12,37 @@ export default function Footer({ content }) {
   const finalContent = content || defaultContent;
   const header = finalContent.header || defaultContent.header;
   const { logo } = header;
+  const footer = finalContent.footer || defaultContent.footer;
+
+  const legalLinks = Array.isArray(footer?.legalLinks) && footer.legalLinks.length > 0
+    ? footer.legalLinks
+    : defaultContent.footer.legalLinks;
+
+  const contact = {
+    ...(defaultContent.footer.contact || {}),
+    ...(footer?.contact || {}),
+  };
+
+  const bottomBar = {
+    ...(defaultContent.footer.bottomBar || {}),
+    ...(footer?.bottomBar || {}),
+  };
+
+  const socialLinks = Array.isArray(footer?.socialLinks) && footer.socialLinks.length > 0
+    ? footer.socialLinks
+    : defaultContent.footer.socialLinks;
+
+  const SOCIAL_ICON_MAP = {
+    facebook: FaFacebook,
+    twitter: FaTwitter,
+    instagram: FaInstagram,
+  };
+
+  const resolveSocialIcon = (platform) => {
+    const Icon =
+      SOCIAL_ICON_MAP[platform?.toLowerCase?.()] || FaGlobe;
+    return <Icon className="text-lg" />;
+  };
 
   return (
     <footer className="bg-[#FBFBFB] ">
@@ -36,9 +67,8 @@ export default function Footer({ content }) {
             </div>
             {/* Description */}
             <p className="text-gray-700 text-sm leading-relaxed">
-              ITJobNow is a 5-week training program that helps people learn IT
-              skills and start their career in technology. Our goal is to help
-              you gain the right skills and get ready for real IT jobs quickly.
+              {footer?.description ||
+                defaultContent.footer.description}
             </p>
           </div>
 
@@ -46,45 +76,31 @@ export default function Footer({ content }) {
           <div>
             <h4 className="text-lg font-bold text-gray-900 mb-4">Legal</h4>
             <ul className="space-y-3">
-              <li>
-                <Link
-                  href="#"
-                  className="text-gray-700 hover:text-primary transition-colors text-sm"
-                >
-                  Terms & Conditions (Clients)
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
-                  className="text-gray-700 hover:text-primary transition-colors text-sm"
-                >
-                  Terms & Conditions (ServiPros)
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
-                  className="text-gray-700 hover:text-primary transition-colors text-sm"
-                >
-                  Privacy Policy
-                </Link>
-              </li>
+              {legalLinks.map((link, index) => (
+                <li key={`${link?.href || index}-${index}`}>
+                  <Link
+                    href={link?.href || "#"}
+                    className="text-gray-700 hover:text-primary transition-colors text-sm"
+                  >
+                    {link?.label || "Link"}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
           {/* Right Column - Contact Us */}
           <div>
             <Link
-              href="/contact"
+              href={contact?.href || "/contact"}
               className="text-lg font-bold text-gray-900 mb-4 hover:text-primary transition-colors block"
             >
-              Contact Us
+              {contact?.heading || "Contact Us"}
             </Link>
             <div className="space-y-3 text-sm text-gray-700">
-              <p>Have questions or need help? We&apos;re here for you!</p>
-              <p>Email: support@.com</p>
-              <p>Location: San Juan, Australia</p>
+              {contact?.description ? <p>{contact.description}</p> : null}
+              {contact?.email ? <p>Email: {contact.email}</p> : null}
+              {contact?.location ? <p>Location: {contact.location}</p> : null}
             </div>
           </div>
         </div>
@@ -96,8 +112,8 @@ export default function Footer({ content }) {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             {/* Left Side - Copyright and Design Credit */}
             <div className="flex flex-col md:flex-row items-center gap-4 text-sm text-gray-700">
-              <p>&copy; 2025 ITJobNow. All rights reserved</p>
-              <p>Designed with for Australia.</p>
+              {bottomBar?.copyright ? <p>{bottomBar.copyright}</p> : null}
+              {bottomBar?.designCredit ? <p>{bottomBar.designCredit}</p> : null}
             </div>
 
             {/* Right Side - Language, Currency, Social Media */}
@@ -105,35 +121,27 @@ export default function Footer({ content }) {
               {/* Language Selector */}
               <div className="flex items-center gap-2 text-sm text-gray-700">
                 <FaGlobe className="text-gray-600" />
-                <span>Spanish</span>
+                <span>{bottomBar?.language || "English"}</span>
               </div>
 
               {/* Currency Selector */}
               <div className="flex items-center gap-2 text-sm text-gray-700">
                 <FaDollarSign className="text-gray-600" />
-                <span>USD</span>
+                <span>{bottomBar?.currency || "USD"}</span>
               </div>
 
               {/* Social Media Icons */}
               <div className="flex items-center gap-4">
-                <Link
-                  href="#"
-                  className="text-gray-700 hover:text-primary transition-colors"
-                >
-                  <FaFacebook className="text-lg" />
-                </Link>
-                <Link
-                  href="#"
-                  className="text-gray-700 hover:text-primary transition-colors"
-                >
-                  <FaTwitter className="text-lg" />
-                </Link>
-                <Link
-                  href="#"
-                  className="text-gray-700 hover:text-primary transition-colors"
-                >
-                  <FaInstagram className="text-lg" />
-                </Link>
+                {socialLinks.map((social, index) => (
+                  <Link
+                    key={`${social?.platform || "social"}-${index}`}
+                    href={social?.url || "#"}
+                    className="text-gray-700 hover:text-primary transition-colors"
+                    aria-label={social?.platform || "Social link"}
+                  >
+                    {resolveSocialIcon(social?.platform)}
+                  </Link>
+                ))}
               </div>
             </div>
           </div>

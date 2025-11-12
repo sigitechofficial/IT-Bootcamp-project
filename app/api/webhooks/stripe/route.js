@@ -170,6 +170,42 @@ export async function POST(req) {
           console.log("✅ email sent to", customerEmail);
         }
 
+        const adminEmail =
+          process.env.ADMIN_ENROLLMENT_EMAIL ||
+          process.env.ADMIN_NOTIFICATION_EMAIL ||
+          process.env.ADMIN_EMAIL ||
+          SUPPORT_EMAIL;
+
+        if (adminEmail) {
+          const adminHtml = buildAdminEnrollmentEmail({
+            customerName,
+            customerEmail,
+            amountPaid: amountTotal ? `${currency} ${amountTotal}` : "Paid",
+            bootcampName,
+            paidAt,
+            stripeSessionId: session.id,
+            receiptUrl,
+            cardBrand,
+            cardLast4,
+          });
+
+          const adminPayload = {
+            from: fromEmail,
+            to: adminEmail,
+            subject: `New enrolment: ${customerName} – ${bootcampName}`,
+            html: adminHtml,
+          };
+
+          const adminResp = await resend.emails.send(adminPayload);
+          if (adminResp.error) {
+            console.error("❌ Resend admin email error:", adminResp.error);
+          } else {
+            console.log("✅ admin email sent to", adminEmail);
+          }
+        } else {
+          console.warn("⚠ Admin email not configured; skipping admin notification");
+        }
+
         break;
       }
 
@@ -278,6 +314,76 @@ function buildEnrollmentEmail({
     <p style="text-align:center;color:#6b7280;font-size:12px;margin-top:18px;">
       © ${year} ${companyName}. All rights reserved.
     </p>
+  </body>
+</html>`;
+}
+
+function buildAdminEnrollmentEmail({
+  customerName,
+  customerEmail,
+  amountPaid,
+  bootcampName,
+  paidAt,
+  stripeSessionId,
+  receiptUrl,
+  cardBrand,
+  cardLast4,
+}) {
+  return `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>New enrolment received</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body style="background-color:#f4f4f5;margin:0;padding:24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;color:#111827;">
+    <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:10px;border:1px solid #e5e7eb;padding:24px 28px;">
+      <h2 style="margin-top:0;margin-bottom:12px;">New enrolment received</h2>
+      <p style="margin-top:0;margin-bottom:18px;">A student just completed their payment. Details below:</p>
+      <table style="width:100%;border-collapse:collapse;">
+        <tbody>
+          <tr>
+            <td style="padding:6px 0;font-weight:600;width:40%;">Student name</td>
+            <td style="padding:6px 0;">${customerName}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;font-weight:600;">Student email</td>
+            <td style="padding:6px 0;">${customerEmail}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;font-weight:600;">Bootcamp</td>
+            <td style="padding:6px 0;">${bootcampName}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;font-weight:600;">Amount paid</td>
+            <td style="padding:6px 0;">${amountPaid}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;font-weight:600;">Paid at</td>
+            <td style="padding:6px 0;">${paidAt}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;font-weight:600;">Stripe session</td>
+            <td style="padding:6px 0;">${stripeSessionId}</td>
+          </tr>
+          ${
+            cardBrand || cardLast4
+              ? `<tr>
+            <td style="padding:6px 0;font-weight:600;">Payment method</td>
+            <td style="padding:6px 0;">${cardBrand ? cardBrand.toUpperCase() : ""}${
+                  cardLast4 ? " •••• " + cardLast4 : ""
+                }</td>
+          </tr>`
+              : ""
+          }
+        </tbody>
+      </table>
+      ${
+        receiptUrl
+          ? `<p style="margin-top:18px;">Receipt: <a href="${receiptUrl}" style="color:#0f172a;">View Stripe receipt</a></p>`
+          : ""
+      }
+    </div>
   </body>
 </html>`;
 }

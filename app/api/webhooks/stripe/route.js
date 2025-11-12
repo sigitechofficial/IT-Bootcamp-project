@@ -366,23 +366,20 @@ function buildAdminEnrollmentEmail({
             <td style="padding:6px 0;font-weight:600;">Stripe session</td>
             <td style="padding:6px 0;">${stripeSessionId}</td>
           </tr>
-          ${
-            cardBrand || cardLast4
-              ? `<tr>
+          ${cardBrand || cardLast4
+      ? `<tr>
             <td style="padding:6px 0;font-weight:600;">Payment method</td>
-            <td style="padding:6px 0;">${cardBrand ? cardBrand.toUpperCase() : ""}${
-                  cardLast4 ? " •••• " + cardLast4 : ""
-                }</td>
+            <td style="padding:6px 0;">${cardBrand ? cardBrand.toUpperCase() : ""}${cardLast4 ? " •••• " + cardLast4 : ""
+      }</td>
           </tr>`
-              : ""
-          }
+      : ""
+    }
         </tbody>
       </table>
-      ${
-        receiptUrl
-          ? `<p style="margin-top:18px;">Receipt: <a href="${receiptUrl}" style="color:#0f172a;">View Stripe receipt</a></p>`
-          : ""
-      }
+      ${receiptUrl
+      ? `<p style="margin-top:18px;">Receipt: <a href="${receiptUrl}" style="color:#0f172a;">View Stripe receipt</a></p>`
+      : ""
+    }
     </div>
   </body>
 </html>`;

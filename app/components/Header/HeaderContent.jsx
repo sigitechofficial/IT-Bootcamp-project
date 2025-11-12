@@ -1,11 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 
 export default function HeaderContent({ header }) {
     const { logo, menu, button } = header || {};
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+    const normalizedMenu = useMemo(() => {
+        if (!Array.isArray(menu)) return [];
+        return menu.map((item) => {
+            if (!item?.link || typeof item.link !== "string") return item;
+            if (item.link.startsWith("#")) {
+                return { ...item, link: `/${item.link}` };
+            }
+            return item;
+        });
+    }, [menu]);
+
+    const resolvedButton = useMemo(() => {
+        if (!button?.link || typeof button.link !== "string") return button;
+        if (button.link.startsWith("#")) {
+            return { ...button, link: `/${button.link}` };
+        }
+        return button;
+    }, [button]);
 
     const toggleMenu = () => {
         setIsMenuOpen((prev) => !prev);
@@ -36,7 +55,7 @@ export default function HeaderContent({ header }) {
 
                 {/* Navigation Menu - Desktop */}
                 <nav className="hidden md:flex gap-10">
-                    {menu?.map((item, index) => (
+                    {normalizedMenu?.map((item, index) => (
                         <Link
                             key={index}
                             href={item.link || "#"}
@@ -50,7 +69,7 @@ export default function HeaderContent({ header }) {
                 {/* CTA - Desktop */}
                 {button?.text && (
                     <Link
-                        href={button?.link || "/enroll"}
+                        href={resolvedButton?.link || "/enroll"}
                         className="hidden md:flex bg-primary text-white px-4 h-[60px] rounded-lg text-lg hover:bg-primary/90 transition-colors font-switzer font-semibold items-center justify-center"
                     >
                         {button.text}
@@ -86,7 +105,7 @@ export default function HeaderContent({ header }) {
                     {isMenuOpen && (
                         <div className="absolute right-4 top-[calc(100%+0.75rem)] w-72 rounded-xl border border-neutral-200 bg-white p-4 shadow-lg">
                             <nav className="flex flex-col gap-2">
-                                {menu?.map((item, index) => (
+                                {normalizedMenu?.map((item, index) => (
                                     <Link
                                         key={index}
                                         href={item.link || "#"}
@@ -103,7 +122,7 @@ export default function HeaderContent({ header }) {
 
                             {button?.text && (
                                 <Link
-                                    href={button?.link || "/enroll"}
+                                    href={resolvedButton?.link || "/enroll"}
                                     onClick={closeMenu}
                                     className="mt-4 flex h-12 w-full items-center justify-center rounded-lg bg-primary text-lg font-semibold text-white transition-colors hover:bg-primary/90"
                                 >

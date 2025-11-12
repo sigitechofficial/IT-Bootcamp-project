@@ -523,7 +523,10 @@ export default function ProgramOverview({
               Your future in tech start here. Reserve your seat for the next
               cohort.
             </p>
-            <button className="bg-white text-primary px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-colors">
+            <button
+              onClick={() => router.push("/enroll")}
+              className="bg-white text-primary px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-colors"
+            >
               Reserve Your Seat
             </button>
           </div>

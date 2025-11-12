@@ -13,7 +13,9 @@
 :root {
   --color-primary: #1193d4;
 }
-
+* {
+  scroll-behavior: smooth;
+}
 /* Set Switzer as default font family */
 body {
   font-family: "Switzer", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,

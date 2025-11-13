@@ -57,7 +57,7 @@ export default function HeroSection({ hero }) {
                 )}
                 {ctaText && (
                     <Link
-                        href={ctaLink || "#"}
+                        href={ctaLink || "/enroll"}
                         className="mt-8 inline-block bg-primary text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-primary/90 shadow-lg hover:shadow-xl"
                     >
                         {ctaText}

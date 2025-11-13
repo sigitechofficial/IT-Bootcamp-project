@@ -9,6 +9,7 @@ const ADMIN_TABS = [
   { id: "programOverview", label: "Program Overview" },
   { id: "faq", label: "FAQ" },
   { id: "footer", label: "Footer" },
+  { id: "emails", label: "Email Templates" },
 ];
 
 function normalizeContent(data) {
@@ -19,11 +20,13 @@ function normalizeContent(data) {
   const faqData = incoming.faq || {};
   const defaultFaq = defaultContent.faq || {};
   const footerData = incoming.footer || {};
+  const emailTemplatesData = incoming.emailTemplates || {};
 
   const defaultBootcampCycles = Array.isArray(defaultContent.programOverview?.bootcampCycles)
     ? defaultContent.programOverview.bootcampCycles
     : [];
   const defaultFooter = defaultContent.footer || {};
+  const defaultEmailTemplates = defaultContent.emailTemplates || {};
 
   const mergedHeader = {
     ...defaultContent.header,
@@ -178,6 +181,39 @@ function normalizeContent(data) {
         : defaultFooter.socialLinks || [],
   };
 
+  const studentEmailTemplateData = emailTemplatesData.studentEnrollment || {};
+  const defaultStudentEmailTemplate = defaultEmailTemplates.studentEnrollment || {};
+  const adminEmailTemplateData = emailTemplatesData.adminEnrollment || {};
+  const defaultAdminEmailTemplate = defaultEmailTemplates.adminEnrollment || {};
+
+  const mergedEmailTemplates = {
+    ...defaultEmailTemplates,
+    ...emailTemplatesData,
+    brand: {
+      ...defaultEmailTemplates.brand,
+      ...(emailTemplatesData.brand || {}),
+    },
+    studentEnrollment: {
+      ...defaultStudentEmailTemplate,
+      ...studentEmailTemplateData,
+      summaryLabels: {
+        ...defaultStudentEmailTemplate.summaryLabels,
+        ...(studentEmailTemplateData.summaryLabels || {}),
+      },
+      nextSteps: Array.isArray(studentEmailTemplateData.nextSteps)
+        ? studentEmailTemplateData.nextSteps
+        : defaultStudentEmailTemplate.nextSteps || [],
+    },
+    adminEnrollment: {
+      ...defaultAdminEmailTemplate,
+      ...adminEmailTemplateData,
+      summaryLabels: {
+        ...defaultAdminEmailTemplate.summaryLabels,
+        ...(adminEmailTemplateData.summaryLabels || {}),
+      },
+    },
+  };
+
   return {
     ...defaultContent,
     ...incoming,
@@ -186,6 +222,7 @@ function normalizeContent(data) {
     programOverview: mergedProgramOverview,
     faq: normalizedFaq,
     footer: mergedFooter,
+    emailTemplates: mergedEmailTemplates,
   };
 }
 
@@ -471,6 +508,96 @@ export default function AdminPage() {
     }
   }
 
+  const updateEmailBrand = (field, value) => {
+    setContent((prev) => ({
+      ...prev,
+      emailTemplates: {
+        ...prev.emailTemplates,
+        brand: {
+          ...(prev.emailTemplates?.brand || {}),
+          [field]: value,
+        },
+      },
+    }));
+  };
+
+  const updateStudentEmailTemplate = (field, value) => {
+    setContent((prev) => ({
+      ...prev,
+      emailTemplates: {
+        ...prev.emailTemplates,
+        studentEnrollment: {
+          ...(prev.emailTemplates?.studentEnrollment || {}),
+          [field]: value,
+        },
+      },
+    }));
+  };
+
+  const updateStudentSummaryLabel = (field, value) => {
+    setContent((prev) => ({
+      ...prev,
+      emailTemplates: {
+        ...prev.emailTemplates,
+        studentEnrollment: {
+          ...(prev.emailTemplates?.studentEnrollment || {}),
+          summaryLabels: {
+            ...(prev.emailTemplates?.studentEnrollment?.summaryLabels || {}),
+            [field]: value,
+          },
+        },
+      },
+    }));
+  };
+
+  const updateStudentNextSteps = (updater) => {
+    setContent((prev) => {
+      const current = Array.isArray(prev.emailTemplates?.studentEnrollment?.nextSteps)
+        ? [...prev.emailTemplates.studentEnrollment.nextSteps]
+        : [];
+      const next = updater(current);
+      return {
+        ...prev,
+        emailTemplates: {
+          ...prev.emailTemplates,
+          studentEnrollment: {
+            ...(prev.emailTemplates?.studentEnrollment || {}),
+            nextSteps: next,
+          },
+        },
+      };
+    });
+  };
+
+  const updateAdminEmailTemplate = (field, value) => {
+    setContent((prev) => ({
+      ...prev,
+      emailTemplates: {
+        ...prev.emailTemplates,
+        adminEnrollment: {
+          ...(prev.emailTemplates?.adminEnrollment || {}),
+          [field]: value,
+        },
+      },
+    }));
+  };
+
+  const updateAdminSummaryLabel = (field, value) => {
+    setContent((prev) => ({
+      ...prev,
+      emailTemplates: {
+        ...prev.emailTemplates,
+        adminEnrollment: {
+          ...(prev.emailTemplates?.adminEnrollment || {}),
+          summaryLabels: {
+            ...(prev.emailTemplates?.adminEnrollment?.summaryLabels || {}),
+            [field]: value,
+          },
+        },
+      },
+    }));
+  };
+
 
   if (!content) {
     return <div className="p-6">Loading...</div>;
@@ -520,6 +647,15 @@ export default function AdminPage() {
       </div>
     );
   }
+
+  const emailBrand = content.emailTemplates?.brand || {};
+  const studentEmailTemplate = content.emailTemplates?.studentEnrollment || {};
+  const studentSummaryLabels = studentEmailTemplate.summaryLabels || {};
+  const studentNextSteps = Array.isArray(studentEmailTemplate.nextSteps)
+    ? studentEmailTemplate.nextSteps
+    : [];
+  const adminEmailTemplate = content.emailTemplates?.adminEnrollment || {};
+  const adminSummaryLabels = adminEmailTemplate.summaryLabels || {};
 
   return (
     <div className="flex min-h-screen bg-slate-100">
@@ -2481,6 +2617,504 @@ export default function AdminPage() {
               </div>
             )}
 
+            {/* Email Templates */}
+            {activeTab === "emails" && (
+              <div className="mt-6 space-y-6">
+                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <h2 className="text-xl font-semibold text-slate-900">Email Brand Defaults</h2>
+                  <p className="mt-2 text-sm text-slate-500">
+                    Update global values used across the student and admin enrolment emails.
+                  </p>
+                  <div className="mt-6 grid gap-4 md:grid-cols-3">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700">Company Name</label>
+                      <input
+                        className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                        value={emailBrand.companyName || ""}
+                        onChange={(e) => updateEmailBrand("companyName", e.target.value)}
+                        placeholder="IT Job Now"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700">Support Email</label>
+                      <input
+                        className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                        value={emailBrand.supportEmail || ""}
+                        onChange={(e) => updateEmailBrand("supportEmail", e.target.value)}
+                        placeholder="support@example.com"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700">Default From Email</label>
+                      <input
+                        className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                        value={emailBrand.fromEmail || ""}
+                        onChange={(e) => updateEmailBrand("fromEmail", e.target.value)}
+                        placeholder="onboarding@resend.dev"
+                      />
+                      <p className="mt-1 text-xs text-slate-500">
+                        If blank, the app will use the `EMAIL_FROM` environment variable or Resend test domain.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                    <div>
+                      <h2 className="text-xl font-semibold text-slate-900">Student Confirmation Email</h2>
+                      <p className="mt-2 text-sm text-slate-500">
+                        Controls the email sent to the student after payment succeeds. Dynamic details such as student name,
+                        bootcamp name, payment amount, dates and support contact are inserted automatically.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 space-y-5">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700">Subject Prefix (before bootcamp name)</label>
+                        <input
+                          className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                          value={studentEmailTemplate.subjectPrefix || ""}
+                          onChange={(e) => updateStudentEmailTemplate("subjectPrefix", e.target.value)}
+                          placeholder="Enrolment confirmed – "
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700">Hero Title</label>
+                        <input
+                          className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                          value={studentEmailTemplate.heroTitle || ""}
+                          onChange={(e) => updateStudentEmailTemplate("heroTitle", e.target.value)}
+                          placeholder="Your enrolment is confirmed 🎉"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700">Hero Subtitle Prefix</label>
+                        <input
+                          className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                          value={studentEmailTemplate.heroSubtitlePrefix || ""}
+                          onChange={(e) => updateStudentEmailTemplate("heroSubtitlePrefix", e.target.value)}
+                          placeholder="e.g. Cohort: "
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700">Hero Subtitle Suffix</label>
+                        <input
+                          className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                          value={studentEmailTemplate.heroSubtitleSuffix || ""}
+                          onChange={(e) => updateStudentEmailTemplate("heroSubtitleSuffix", e.target.value)}
+                          placeholder="Leave blank to show only the bootcamp name"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700">Greeting (before student name)</label>
+                        <input
+                          className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                          value={studentEmailTemplate.greeting || ""}
+                          onChange={(e) => updateStudentEmailTemplate("greeting", e.target.value)}
+                          placeholder="Hi"
+                        />
+                        <p className="mt-1 text-xs text-slate-500">The student name and comma are added automatically.</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700">Intro (before bootcamp name)</label>
+                        <textarea
+                          className="w-full min-h-[80px] rounded border border-slate-300 px-3 py-2 text-sm"
+                          value={studentEmailTemplate.introLead || ""}
+                          onChange={(e) => updateStudentEmailTemplate("introLead", e.target.value)}
+                          placeholder="Thanks for your payment. This email confirms your enrolment in "
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700">Intro (after bootcamp name)</label>
+                        <textarea
+                          className="w-full min-h-[80px] rounded border border-slate-300 px-3 py-2 text-sm"
+                          value={studentEmailTemplate.introTrail || ""}
+                          onChange={(e) => updateStudentEmailTemplate("introTrail", e.target.value)}
+                          placeholder="."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700">Payment Summary (before amount)</label>
+                        <textarea
+                          className="w-full min-h-[80px] rounded border border-slate-300 px-3 py-2 text-sm"
+                          value={studentEmailTemplate.paymentSummaryLead || ""}
+                          onChange={(e) => updateStudentEmailTemplate("paymentSummaryLead", e.target.value)}
+                          placeholder="We’ve received"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700">Payment Summary (between amount and date)</label>
+                        <input
+                          className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                          value={studentEmailTemplate.paymentSummaryMid || ""}
+                          onChange={(e) => updateStudentEmailTemplate("paymentSummaryMid", e.target.value)}
+                          placeholder="on"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700">Payment Summary (after date)</label>
+                        <input
+                          className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                          value={studentEmailTemplate.paymentSummaryTrail || ""}
+                          onChange={(e) => updateStudentEmailTemplate("paymentSummaryTrail", e.target.value)}
+                          placeholder="."
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700">Summary Heading</label>
+                        <input
+                          className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                          value={studentEmailTemplate.summaryHeading || ""}
+                          onChange={(e) => updateStudentEmailTemplate("summaryHeading", e.target.value)}
+                          placeholder="Summary"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700">Next Steps Heading</label>
+                        <input
+                          className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                          value={studentEmailTemplate.nextStepsHeading || ""}
+                          onChange={(e) => updateStudentEmailTemplate("nextStepsHeading", e.target.value)}
+                          placeholder="What’s next?"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-900">Summary Labels</h3>
+                      <div className="mt-3 grid gap-3 md:grid-cols-2">
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600">Bootcamp</label>
+                          <input
+                            className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                            value={studentSummaryLabels.bootcamp || ""}
+                            onChange={(e) => updateStudentSummaryLabel("bootcamp", e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600">Student Email</label>
+                          <input
+                            className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                            value={studentSummaryLabels.studentEmail || ""}
+                            onChange={(e) => updateStudentSummaryLabel("studentEmail", e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600">Amount</label>
+                          <input
+                            className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                            value={studentSummaryLabels.amount || ""}
+                            onChange={(e) => updateStudentSummaryLabel("amount", e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600">Payment Method</label>
+                          <input
+                            className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                            value={studentSummaryLabels.paymentMethod || ""}
+                            onChange={(e) => updateStudentSummaryLabel("paymentMethod", e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600">Stripe Reference</label>
+                          <input
+                            className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                            value={studentSummaryLabels.stripeReference || ""}
+                            onChange={(e) => updateStudentSummaryLabel("stripeReference", e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700">Receipt Text</label>
+                        <textarea
+                          className="w-full min-h-[80px] rounded border border-slate-300 px-3 py-2 text-sm"
+                          value={studentEmailTemplate.receiptText || ""}
+                          onChange={(e) => updateStudentEmailTemplate("receiptText", e.target.value)}
+                          placeholder="You can view or download your Stripe receipt here:"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700">Receipt CTA Label</label>
+                        <input
+                          className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                          value={studentEmailTemplate.receiptCta || ""}
+                          onChange={(e) => updateStudentEmailTemplate("receiptCta", e.target.value)}
+                          placeholder="View receipt"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700">Fallback Text When No Receipt Available</label>
+                      <textarea
+                        className="w-full min-h-[80px] rounded border border-slate-300 px-3 py-2 text-sm"
+                        value={studentEmailTemplate.noReceiptText || ""}
+                        onChange={(e) => updateStudentEmailTemplate("noReceiptText", e.target.value)}
+                        placeholder="(We couldn’t attach a receipt link automatically for this payment yet.)"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700">Next Steps List</label>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Displayed as bullet points below the heading. Leave blank to omit the list.
+                      </p>
+                      <div className="mt-3 space-y-3">
+                        {studentNextSteps.map((step, index) => (
+                          <div key={index} className="flex gap-2">
+                            <input
+                              className="flex-1 rounded border border-slate-300 px-3 py-2 text-sm"
+                              value={step || ""}
+                              onChange={(e) =>
+                                updateStudentNextSteps((current) => {
+                                  const next = [...current];
+                                  next[index] = e.target.value;
+                                  return next;
+                                })
+                              }
+                              placeholder="You’ll receive onboarding / access details shortly."
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                updateStudentNextSteps((current) =>
+                                  current.filter((_, i) => i !== index)
+                                )
+                              }
+                              className="rounded bg-red-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-600"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateStudentNextSteps((current) => [...current, ""])
+                          }
+                          className="inline-flex items-center justify-center rounded bg-green-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-green-600"
+                        >
+                          + Add Step
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700">Closing Line</label>
+                        <input
+                          className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                          value={studentEmailTemplate.closingLine || ""}
+                          onChange={(e) => updateStudentEmailTemplate("closingLine", e.target.value)}
+                          placeholder="Cheers,"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700">Closing Signature Prefix</label>
+                        <input
+                          className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                          value={studentEmailTemplate.closingSignaturePrefix || ""}
+                          onChange={(e) => updateStudentEmailTemplate("closingSignaturePrefix", e.target.value)}
+                          placeholder="The "
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700">Closing Signature Suffix</label>
+                        <input
+                          className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                          value={studentEmailTemplate.closingSignatureSuffix || ""}
+                          onChange={(e) => updateStudentEmailTemplate("closingSignatureSuffix", e.target.value)}
+                          placeholder=" Team"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700">Support Line Prefix</label>
+                        <textarea
+                          className="w-full min-h-[80px] rounded border border-slate-300 px-3 py-2 text-sm"
+                          value={studentEmailTemplate.supportTextPrefix || ""}
+                          onChange={(e) => updateStudentEmailTemplate("supportTextPrefix", e.target.value)}
+                          placeholder="Need help? Contact us at "
+                        />
+                        <p className="mt-1 text-xs text-slate-500">The support email is appended automatically.</p>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700">Footer Prefix</label>
+                        <input
+                          className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                          value={studentEmailTemplate.footerPrefix || ""}
+                          onChange={(e) => updateStudentEmailTemplate("footerPrefix", e.target.value)}
+                          placeholder="© "
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700">Footer Suffix</label>
+                        <input
+                          className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                          value={studentEmailTemplate.footerSuffix || ""}
+                          onChange={(e) => updateStudentEmailTemplate("footerSuffix", e.target.value)}
+                          placeholder=". All rights reserved."
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                    <div>
+                      <h2 className="text-xl font-semibold text-slate-900">Admin Notification Email</h2>
+                      <p className="mt-2 text-sm text-slate-500">
+                        Sent to the admin inbox after a successful enrolment. The student name and bootcamp name are appended
+                        to the subject automatically.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 space-y-5">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700">Subject Prefix</label>
+                        <input
+                          className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                          value={adminEmailTemplate.subjectPrefix || ""}
+                          onChange={(e) => updateAdminEmailTemplate("subjectPrefix", e.target.value)}
+                          placeholder="New enrolment:"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700">Heading</label>
+                        <input
+                          className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                          value={adminEmailTemplate.title || ""}
+                          onChange={(e) => updateAdminEmailTemplate("title", e.target.value)}
+                          placeholder="New enrolment received"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700">Intro Paragraph</label>
+                      <textarea
+                        className="w-full min-h-[80px] rounded border border-slate-300 px-3 py-2 text-sm"
+                        value={adminEmailTemplate.intro || ""}
+                        onChange={(e) => updateAdminEmailTemplate("intro", e.target.value)}
+                        placeholder="A student just completed their payment. Details below:"
+                      />
+                    </div>
+
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-900">Summary Labels</h3>
+                      <div className="mt-3 grid gap-3 md:grid-cols-2">
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600">Student Name</label>
+                          <input
+                            className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                            value={adminSummaryLabels.studentName || ""}
+                            onChange={(e) => updateAdminSummaryLabel("studentName", e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600">Student Email</label>
+                          <input
+                            className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                            value={adminSummaryLabels.studentEmail || ""}
+                            onChange={(e) => updateAdminSummaryLabel("studentEmail", e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600">Bootcamp</label>
+                          <input
+                            className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                            value={adminSummaryLabels.bootcamp || ""}
+                            onChange={(e) => updateAdminSummaryLabel("bootcamp", e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600">Amount Paid</label>
+                          <input
+                            className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                            value={adminSummaryLabels.amountPaid || ""}
+                            onChange={(e) => updateAdminSummaryLabel("amountPaid", e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600">Paid At</label>
+                          <input
+                            className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                            value={adminSummaryLabels.paidAt || ""}
+                            onChange={(e) => updateAdminSummaryLabel("paidAt", e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600">Stripe Session</label>
+                          <input
+                            className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                            value={adminSummaryLabels.stripeSession || ""}
+                            onChange={(e) => updateAdminSummaryLabel("stripeSession", e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600">Payment Method</label>
+                          <input
+                            className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                            value={adminSummaryLabels.paymentMethod || ""}
+                            onChange={(e) => updateAdminSummaryLabel("paymentMethod", e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700">Receipt Label</label>
+                        <input
+                          className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                          value={adminEmailTemplate.receiptLabel || ""}
+                          onChange={(e) => updateAdminEmailTemplate("receiptLabel", e.target.value)}
+                          placeholder="Receipt"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700">Receipt CTA Label</label>
+                        <input
+                          className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                          value={adminEmailTemplate.receiptCta || ""}
+                          onChange={(e) => updateAdminEmailTemplate("receiptCta", e.target.value)}
+                          placeholder="View Stripe receipt"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             {/* FAQ Section */}
             {activeTab === "faq" && (
               <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
